@@ -7,14 +7,8 @@
 #include "gputucker/helper.hpp"
 namespace supertensor {
 namespace gputucker {
-
 CommandLineOptions::CommandLineOptions()
-    : input_indices_path_(""),
-      input_values_path_(""),
-      order_(3),
-      rank_(10),
-      gpu_count_(1),
-      gpts_(1) {
+    : _input_path(""), _order(3), _rank(10), _gpu_count(1) {
   initialize();
 }
 
@@ -23,18 +17,13 @@ CommandLineOptions::~CommandLineOptions() {}
 void CommandLineOptions::initialize() {
   po::options_description options("Program Options");
   options.add_options()("help,h", "Display help menu.")(
-      "indices,i", po::value<std::string>(&this->input_indices_path_),
-      "Input tensor indices path")(
-      "values,v", po::value<std::string>(&this->input_values_path_),
-      "Input tensor values path")("order,o", po::value<int>(&this->order_),
-                                  "Order")(
-      "rank,r", po::value<int>(&this->rank_)->default_value(10), "Rank")(
-      "gpus,g", po::value<int>(&this->gpu_count_)->default_value(1),
-      "The number of GPUs")("gpts,q",
-                            po::value<uint64_t>(&this->gpts_)->default_value(1),
-                            "Quantum maximum index value");
+      "input,i", po::value<std::string>(&this->_input_path),
+      "Input tensor path")("order,o", po::value<int>(&this->_order), "Order")(
+      "rank,r", po::value<int>(&this->_rank)->default_value(10), "Rank")(
+      "gpus,g", po::value<int>(&this->_gpu_count)->default_value(1),
+      "The number of GPUs");
 
-  this->options_.add(options);
+  this->_options.add(options);
 }
 
 CommandLineOptions::ReturnStatus CommandLineOptions::parse(int argc,
@@ -45,65 +34,45 @@ CommandLineOptions::ReturnStatus CommandLineOptions::parse(int argc,
   char file_name[5000];
 
   try {
-    po::store(po::parse_command_line(argc, argv, this->options_), var_map);
+    po::store(po::parse_command_line(argc, argv, this->_options), var_map);
     po::notify(var_map);
 
     // Help option
     if (var_map.count("help")) {
-      std::cout << this->options_ << std::endl;
+      std::cout << this->_options << std::endl;
       return OPTS_HELP;
     }
 
     // Enforce an input file argument every time
-    if (!(0 < var_map.count("indices"))) {
+    if (!(0 < var_map.count("input"))) {
       std::cout << CYN "[ERROR] Input file must be specified!!!" RESET
                 << std::endl;
-      std::cout << this->options_ << std::endl;
+      std::cout << this->_options << std::endl;
       return OPTS_FAILURE;
     } else {
       // Strip whitespaces from front/back of filename string
-      boost::algorithm::trim(this->input_indices_path_);
+      boost::algorithm::trim(this->_input_path);
 
       // Resolve the filename to be fully-qualified
-      realpath(this->input_indices_path_.c_str(), file_name);
-      this->input_indices_path_ = file_name;
+      if (realpath(this->_input_path.c_str(), file_name) == NULL) {
+        std::cout << "[ERROR] Input file provided does not exist ["
+                  << this->_input_path << "]" << std::endl;
+        return OPTS_FAILURE;
+      }
+      this->_input_path = file_name;
 
       ret = validate_files() ? OPTS_SUCCESS : OPTS_FAILURE;
     }
-    // Enforce an input file argument every time
-    if (!(0 < var_map.count("values"))) {
-      std::cout << CYN "[ERROR] Input file must be specified!!!" RESET
-                << std::endl;
-      std::cout << this->options_ << std::endl;
-      return OPTS_FAILURE;
-    } else {
-      // Strip whitespaces from front/back of filename string
-      boost::algorithm::trim(this->input_values_path_);
-
-      // Resolve the filename to be fully-qualified
-      realpath(this->input_values_path_.c_str(), file_name);
-      this->input_values_path_ = file_name;
-
-      ret = validate_files() ? OPTS_SUCCESS : OPTS_FAILURE;
-    }
-
     if (!(0 < var_map.count("order"))) {
       std::cout << "[ERROR] Tensor order must be specified!!!" << std::endl;
-      std::cout << this->options_ << std::endl;
-      return OPTS_FAILURE;
-    }
-
-    if (!(0 < var_map.count("gpts"))) {
-      std::cout << "[ERROR] quantum maximum index value must be specified!!!"
-                << std::endl;
-      std::cout << this->options_ << std::endl;
+      std::cout << this->_options << std::endl;
       return OPTS_FAILURE;
     }
 
     // We can check if a rank is defaulted
     if (!var_map["rank"].defaulted()) {
       std::cout << "[WARNING] Default value for User-Value overwritten to "
-                << this->rank_ << std::endl;
+                << this->_rank << std::endl;
     }
   } catch (std::exception &e) {
     std::cout << "[ERROR] Parsing error : " << e.what() << std::endl;
@@ -117,15 +86,9 @@ CommandLineOptions::ReturnStatus CommandLineOptions::parse(int argc,
 }
 
 bool CommandLineOptions::validate_files() {
-  if (!boost::filesystem::is_regular_file(this->input_indices_path_)) {
+  if (!boost::filesystem::is_regular_file(this->_input_path)) {
     std::cout << "ERROR - Input file provided does not exist ["
-              << this->input_indices_path_ << "]" << std::endl;
-    return false;
-  }
-
-  if (!boost::filesystem::is_regular_file(this->input_values_path_)) {
-    std::cout << "ERROR - Input file provided does not exist ["
-              << this->input_values_path_ << "]" << std::endl;
+              << this->_input_path << "]" << std::endl;
     return false;
   }
   return true;

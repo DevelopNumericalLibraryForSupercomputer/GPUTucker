@@ -63,14 +63,7 @@
     "random": "cpp",
     "dense": "cpp"
   },
-  "cmake.sourceDirectory": "${workspaceFolder}",
-  "cmake.debugConfig": {
-    "args": [
-      "-input /home/jihye/data/3d/delicious-3d.tns", // input path
-      "-order 3" // order
-    ]
-  },
-
+  
   "cmake.configureSettings": {},
   "code-runner.executorMap": {
     "cpp": "cd $dir && g++ *cu common/*.cpp -o fileNameWithoutExt && ./$fileNameWithoutExt"
