@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "gputucker/block.hpp"
 #include "gputucker/cmdline_opts.hpp"
+#include "gputucker/tensor.hpp"
 
 int main(int argc, char* argv[]) {
   using namespace supertensor;
@@ -15,6 +15,7 @@ int main(int argc, char* argv[]) {
     using index_t = size_t;
     using value_t = double;
     using block_t = gputucker::Block<index_t, value_t>;
+    using tensor_t = gputucker::Tensor<block_t>;
 
     bool is_double = std::is_same<value_t, double>::value;
     if (is_double) {
