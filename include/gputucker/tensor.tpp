@@ -115,17 +115,17 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::_initialize() {
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::to_string() {
   for (unsigned short axis = 0; axis < this->order; ++axis) {
-    printf("Max. dim[%d] = %u\n", axis, this->dims[axis]);
+    printf("Max. dim[%d] = %lu\n", axis, this->dims[axis]);
   }
   printf("# nnzs: %lu\n", this->nnz_count);
   printf("-------------\n");
   for (unsigned short axis = 0; axis < this->order; ++axis) {
-    printf("Partition dim[%d] = %u\n", axis, this->partition_dims[axis]);
+    printf("Partition dim[%d] = %lu\n", axis, this->partition_dims[axis]);
   }
   printf("# blocks: %lu\n", this->block_count);
   printf("-------------\n");
   for (unsigned short axis = 0; axis < this->order; ++axis) {
-    printf("Block dim[%d] = %u\n", axis, this->block_dims[axis]);
+    printf("Block dim[%d] = %lu\n", axis, this->block_dims[axis]);
   }
   printf("# empty blocks: %lu / %lu\n", this->empty_block_count,
          this->block_count);
