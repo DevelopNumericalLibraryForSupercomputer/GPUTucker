@@ -34,6 +34,7 @@ inline std::string make_error_log(std::string msg, char const *file,
   return std::string{"\n\n" RED} + file + "(" + std::to_string(line) + "): [" +
          function + "] \n\t" + msg + "\n\n" RESET;
 }
+
 #define ERROR_LOG(...) make_error_log(__VA_ARGS__, __FILE__, __func__, __LINE__)
 
 #define GTUCKER_REMOVE_POINTER_TYPE_ALIAS(Type) \

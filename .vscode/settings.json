@@ -61,7 +61,8 @@
     "iterator": "cpp",
     "memory_resource": "cpp",
     "random": "cpp",
-    "dense": "cpp"
+    "dense": "cpp",
+    "*.tpp": "cpp"
   },
   
   "cmake.configureSettings": {},

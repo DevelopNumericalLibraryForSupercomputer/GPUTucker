@@ -1,6 +1,7 @@
 
 #include <omp.h>
 
+#include "gputucker/tensor.hpp"
 namespace supertensor {
 namespace gputucker {
 TENSOR_TEMPLATE
@@ -52,17 +53,6 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::set_partition_dims(
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::set_nnz_count(uint64_t new_nnz_count) {
   this->nnz_count = new_nnz_count;
-}
-
-TENSOR_TEMPLATE
-void Tensor<TENSOR_TEMPLATE_ARGS>::set_data(uint64_t block_id,
-                                            index_t *new_indices,
-                                            value_t *new_values) {
-  assert(this->order > 1);
-
-  std::cout << "tensor->set_data()" << std::endl;
-  this->blocks[block_id]->indices = (index_t *)new_indices;
-  this->blocks[block_id]->values = (value_t *)new_values;
 }
 
 TENSOR_TEMPLATE

@@ -1,6 +1,7 @@
 // Purpose: Source file for Block class
 #include <cassert>
 
+#include "gputucker/block.hpp"
 #include "gputucker/constants.hpp"
 #include "gputucker/helper.hpp"
 

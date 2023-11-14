@@ -2,6 +2,7 @@
 
 #include "gputucker/cmdline_opts.hpp"
 #include "gputucker/tensor.hpp"
+#include "gputucker/tensor_reader.hpp"
 
 int main(int argc, char* argv[]) {
   using namespace supertensor;
@@ -16,6 +17,7 @@ int main(int argc, char* argv[]) {
     using value_t = double;
     using block_t = gputucker::Block<index_t, value_t>;
     using tensor_t = gputucker::Tensor<block_t>;
+    using tensor_reader_t = gputucker::TensorReader<tensor_t>;
 
     bool is_double = std::is_same<value_t, double>::value;
     if (is_double) {
@@ -23,6 +25,10 @@ int main(int argc, char* argv[]) {
     } else {
       printf("Values are float type.\n");
     }
+
+    tensor_reader_t* reader = new tensor_reader_t(options->get_order());
+    reader->parse_from_file(options->get_input_path());
+    reader->to_string();
 
   } else {
     std::cout << "ERROR - problem with options." << std::endl;

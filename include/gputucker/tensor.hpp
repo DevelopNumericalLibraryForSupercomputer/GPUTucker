@@ -56,14 +56,12 @@ class Tensor {
   void set_partition_dims(const index_t *new_partition_dims);
   void set_nnz_count(uint64_t new_nnz_count);
   void set_data(uint64_t block_id, index_t *new_indices[], value_t *new_values);
-  void set_data(uint64_t block_id, index_t *new_indices, value_t *new_values);
   index_t get_max_partition_dim();
   index_t get_max_block_dim();
 
  protected:
   void _initialize();
-  void _count_nonzeros_per_block();
-};
+};  // class Tensor
 
 }  // namespace gputucker
 }  // namespace supertensor
