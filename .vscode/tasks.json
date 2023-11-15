@@ -1,0 +1,43 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "NVCC build",
+			"command": "/usr/local/cuda-11.8/bin/nvcc",
+			"args": [
+				// "-g",
+				"${workspaceFolder}/*.cu",
+				"${workspaceFolder}/source/gputucker/*.cpp",
+				"-gencode=arch=compute_70,code=sm_70",
+				"-Xcompiler=-Wdeprecated-declarations",
+				"-Xcompiler=-Wno-write-strings",
+				"-Xcompiler=-fopenmp",
+				// "-Xcompiler=-Wall -Xcompiler=-Werror -Xcompiler=-Wextra",
+				"-Xptxas=-v",
+      	"-O2",
+				"-I${workspaceFolder}/include",
+				"-I${workspaceFolder}/lib",
+				"-I","/usr/include/boost",
+				"-L","/usr/lib/x86_64-linux-gnu",
+				"-std=c++11",
+				"-lboost_program_options",
+				"-lboost_filesystem",
+				"-lboost_system",
+				"-lcudart",
+				"-lgomp",
+				"-lcublas",
+				"-lcurand",
+				"-arch=sm_70",
+				"-o",
+        "${workspaceFolder}/GPUTucker",
+			],
+			"problemMatcher": ["$nvcc"],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+			
+		}
+	]
+}
