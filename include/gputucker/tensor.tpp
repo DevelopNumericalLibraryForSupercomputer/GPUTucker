@@ -30,10 +30,41 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::reset(this_t *other) {
 
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::make_blocks(
-    const index_t *new_partition_dims, uint64_t *histogram) {}
+    const index_t *new_partition_dims, uint64_t *histogram) {
+  gputucker::deallocate(this->blocks);
+  this->set_partition_dims(new_partition_dims);
+
+  this->blocks = gputucker::allocate<block_t *>(this->block_count);
+  index_t *block_coord = gputucker::allocate<index_t>(this->order);
+
+  this->max_nnz_count_in_block = 0;
+
+  for (uint64_t block_id = 0; block_id < this->block_count; ++block_id) {
+    this->block_id_to_block_coord(block_id, block_coord);
+    this->blocks[block_id] =
+        new block_t(block_id, block_coord, this->order, this->block_dims);
+    this->blocks[block_id]->setup_data(histogram[block_id]);
+    if (histogram[block_id] == 0) {
+      this->empty_block_count++;
+    }
+
+    this->max_nnz_count_in_block =
+        std::max<uint64_t>(histogram[block_id], this->max_nnz_count_in_block);
+  }
+}
 
 TENSOR_TEMPLATE
-void Tensor<TENSOR_TEMPLATE_ARGS>::assign_indices() {}
+void Tensor<TENSOR_TEMPLATE_ARGS>::assign_indices() {
+  printf("Assign indices in blocks\n");
+  assert(this->block_count != 0);
+#pragma omp parallel
+  {
+#pragma omp for
+    for (uint64_t block_id = 0; block_id < this->block_count; ++block_id) {
+      this->blocks[block_id]->assign_indices();
+    }
+  }
+}
 
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::block_id_to_block_coord(uint64_t block_id,
