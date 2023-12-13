@@ -68,7 +68,9 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::assign_indices() {
 
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::block_id_to_block_coord(uint64_t block_id,
-                                                           index_t *coord) {}
+                                                           index_t *coord) {
+  // TODO
+}
 
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::set_dims(index_t *new_dims) {
@@ -79,7 +81,9 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::set_dims(index_t *new_dims) {
 
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::set_partition_dims(
-    const index_t *new_partition_dims) {}
+    const index_t *new_partition_dims) {
+  // TODO
+}
 
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::set_nnz_count(uint64_t new_nnz_count) {
@@ -92,7 +96,6 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::set_data(uint64_t block_id,
                                             value_t *new_values) {
   assert(this->order > 1);
 
-  std::cout << "tensor->set_data()" << std::endl;
   for (unsigned short axis = 0; axis < this->order; ++axis) {
     this->blocks[block_id]->indices[axis] = (index_t *)new_indices[axis];
   }
@@ -160,17 +163,6 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::to_string() {
   }
   printf("# empty blocks: %lu / %lu\n", this->empty_block_count,
          this->block_count);
-
-  // for (int nnz = 0; nnz < 10; ++nnz)
-  // {
-  // 	printf("\t (");
-  // 	for (unsigned short axis = 0; axis < this->order - 1; ++axis)
-  // 	{
-  // 		printf("%lu, ", this->indices[axis][nnz]);
-  // 	}
-  // 	printf("%lu) %1.3f\n", this->indices[this->order - 1][nnz],
-  // this->values[nnz]);
-  // }
 }
 
 }  // namespace gputucker
