@@ -8,6 +8,13 @@ namespace supertensor {
 namespace gputucker {
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
+    tensor_t *tensor, unsigned short new_gpu_count, unsigned int new_rank,
+    uint64_t new_gpu_mem_size) {
+  this->initialize(tensor->order, tensor->dims, tensor->nnz_count,
+                   new_gpu_count, new_rank, new_gpu_mem_size);
+}
+OPTIMIZER_TEMPLATE
+void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
     unsigned short new_order, index_t *new_dims, uint64_t new_nnz_count,
     unsigned short new_gpu_count, unsigned int new_rank,
     uint64_t new_gpu_mem_size) {
@@ -18,12 +25,12 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
   this->gpu_count = new_gpu_count;
   this->_gpu_mem_size = new_gpu_mem_size;
 
-  this->component_cost = gtucker::allocate<CostMetric>(
+  this->component_cost = gputucker::allocate<CostMetric>(
       static_cast<int>(Component::ComponentCount));
 
-  this->dims = gtucker::allocate<index_t>(this->order);
-  this->block_dims = gtucker::allocate<index_t>(this->order);
-  this->partition_dims = gtucker::allocate<index_t>(this->order);
+  this->dims = gputucker::allocate<index_t>(this->order);
+  this->block_dims = gputucker::allocate<index_t>(this->order);
+  this->partition_dims = gputucker::allocate<index_t>(this->order);
 
   for (unsigned short axis = 0; axis < this->order; ++axis) {
     this->dims[axis] = new_dims[axis];
@@ -34,7 +41,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
   this->_update_block_dims();
   this->estimate_component_costs();
 
-  this->partition_type = gtucker::enums::PartitionTypes::kDimensionPartition;
+  this->partition_type = gputucker::enums::PartitionTypes::kDimensionPartition;
 }
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::get_data_size(Component comp) {
@@ -112,7 +119,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::find_partition_parms() {
 
   this->determine_partition_type();
 
-  if (this->partition_type == gtucker::enums::kNonzeroPartition) {
+  if (this->partition_type == gputucker::enums::kNonzeroPartition) {
     this->cuda_stream_count = 1;
     size_t avail_memory =
         this->_gpu_mem_size -
@@ -196,10 +203,11 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::determine_partition_type() {
             << std::endl;
 
   if (required_size <= gpu_total_mem_size) {
-    this->partition_type = gtucker::enums::PartitionTypes::kNonzeroPartition;
+    this->partition_type = gputucker::enums::PartitionTypes::kNonzeroPartition;
     printf("\t- Partitioning Type: Nonzeros (Small-scale)\n");
   } else {
-    this->partition_type = gtucker::enums::PartitionTypes::kDimensionPartition;
+    this->partition_type =
+        gputucker::enums::PartitionTypes::kDimensionPartition;
     printf("\t- Partitioning Type: Dimensions (Large-scale)\n");
   }
 }

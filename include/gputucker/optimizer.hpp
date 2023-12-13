@@ -42,7 +42,8 @@ class Optimizer {
  public:
   Optimizer() {}
   ~Optimizer() {}
-
+  void initialize(tensor_t *tensor, unsigned short new_gpu_count,
+                  unsigned int new_rank, uint64_t new_gpu_mem_size);
   void initialize(unsigned short new_order, index_t *new_dims,
                   uint64_t new_nnz_count, unsigned short new_gpu_count,
                   unsigned int new_rank, uint64_t new_gpu_mem_size);
@@ -102,7 +103,7 @@ class Optimizer {
   uint64_t avail_nnz_count_per_task;
 
   CostMetric *component_cost;
-  gtucker::enums::PartitionTypes partition_type;
+  gputucker::enums::PartitionTypes partition_type;
 
  private:
   size_t _gpu_mem_size;

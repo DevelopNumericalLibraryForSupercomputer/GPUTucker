@@ -143,6 +143,7 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::_initialize() {
   for (unsigned short axis = 0; axis < this->order; ++axis) {
     this->dims[axis] = std::numeric_limits<index_t>::min();
     this->block_dims[axis] = std::numeric_limits<index_t>::min();
+    this->partition_dims[axis] = 1;
   }
 }
 

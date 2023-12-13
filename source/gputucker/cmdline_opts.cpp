@@ -55,7 +55,7 @@ CommandLineOptions::ReturnStatus CommandLineOptions::parse(int argc,
 
       // Resolve the filename to be fully-qualified
       if (realpath(this->_input_path.c_str(), file_name) == NULL) {
-        std::cout << "[ERROR] Input file provided does not exist ["
+        std::cout << CYN "[ERROR] Input file provided does not exist ["
                   << this->_input_path << "]" << std::endl;
         return OPTS_FAILURE;
       }
@@ -64,7 +64,7 @@ CommandLineOptions::ReturnStatus CommandLineOptions::parse(int argc,
       ret = validate_files() ? OPTS_SUCCESS : OPTS_FAILURE;
     }
     if (!(0 < var_map.count("order"))) {
-      std::cout << "[ERROR] Tensor order must be specified!!!" << std::endl;
+      std::cout << CYN "[ERROR] Tensor order must be specified!!!" << std::endl;
       std::cout << this->_options << std::endl;
       return OPTS_FAILURE;
     }
@@ -74,6 +74,12 @@ CommandLineOptions::ReturnStatus CommandLineOptions::parse(int argc,
       std::cout << "[WARNING] Default value for User-Value overwritten to "
                 << this->_rank << std::endl;
     }
+
+    if (!var_map["gpus"].defaulted()) {
+      std::cout << "[WARNING] Default value for GPU count overwritten to "
+                << this->_gpu_count << std::endl;
+    }
+
   } catch (std::exception &e) {
     std::cout << "[ERROR] Parsing error : " << e.what() << std::endl;
     ret = OPTS_FAILURE;
