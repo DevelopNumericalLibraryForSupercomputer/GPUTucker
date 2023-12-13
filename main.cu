@@ -30,6 +30,8 @@ int main(int argc, char* argv[]) {
     reader->parse_from_file(options->get_input_path());
     reader->to_string();
 
+    tensor_t* tensor = new tensor_t(reader->data);
+
   } else {
     std::cout << "ERROR - problem with options." << std::endl;
   }
