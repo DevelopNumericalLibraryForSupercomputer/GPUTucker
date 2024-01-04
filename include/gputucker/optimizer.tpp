@@ -7,17 +7,24 @@
 namespace supertensor {
 namespace gputucker {
 OPTIMIZER_TEMPLATE
-void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
-    tensor_t *tensor, unsigned short new_gpu_count, unsigned int new_rank,
-    uint64_t new_gpu_mem_size) {
-  this->initialize(tensor->order, tensor->dims, tensor->nnz_count,
-                   new_gpu_count, new_rank, new_gpu_mem_size);
+void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::Initialize(tensor_t *tensor, 
+                                                    unsigned short new_gpu_count, 
+                                                    unsigned int new_rank,
+                                                    uint64_t new_gpu_mem_size) {
+  this->Initialize(tensor->order, 
+                  tensor->dims, 
+                  tensor->nnz_count,
+                  new_gpu_count, 
+                  new_rank, 
+                  new_gpu_mem_size);
 }
 OPTIMIZER_TEMPLATE
-void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
-    unsigned short new_order, index_t *new_dims, uint64_t new_nnz_count,
-    unsigned short new_gpu_count, unsigned int new_rank,
-    uint64_t new_gpu_mem_size) {
+void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::Initialize(unsigned short new_order, 
+                                                    index_t *new_dims, 
+                                                    uint64_t new_nnz_count,
+                                                    unsigned short new_gpu_count, 
+                                                    unsigned int new_rank,
+                                                    uint64_t new_gpu_mem_size) {
   this->order = new_order;
   this->nnz_count = new_nnz_count;
   this->cuda_stream_count = 1;
@@ -25,8 +32,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::initialize(
   this->gpu_count = new_gpu_count;
   this->_gpu_mem_size = new_gpu_mem_size;
 
-  this->component_cost = gputucker::allocate<CostMetric>(
-      static_cast<int>(Component::ComponentCount));
+  this->component_cost = gputucker::allocate<CostMetric>(static_cast<int>(Component::ComponentCount));
 
   this->dims = gputucker::allocate<index_t>(this->order);
   this->block_dims = gputucker::allocate<index_t>(this->order);
@@ -106,10 +112,6 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::estimate_component_costs() {
     Component c = static_cast<Component>(i);
     this->component_cost[i].data_size = this->get_data_size(c);
     this->component_cost[i].transfer_size = this->get_transfer_size(c);
-    // std::cout << "--- Amount of Transfered data[ " << str_Component[i] << "
-    // ]\t" <<
-    // common::HumanReadable{(std::uintmax_t)this->component_cost[i].transfer_size}
-    // << std::endl;
   }
 }
 
@@ -132,11 +134,6 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::find_partition_parms() {
     printf("\t- Max. available non-zero count per a device: %lu\n",
            this->avail_nnz_count_per_task);
   } else {
-    // stream 버퍼에 모든 데이터가 load 될때까지 partitioning 진행.
-    // 우리는 이미 알고있다. 최적의 paritioning 방법은 dimensions이 큰 axis 부터
-    // partitioning을 진행해야됨 하지만 논문에는 minimum cost를 찾는 것으로
-    // 작성해야 할것
-
     this->cuda_stream_count = 4;
     size_t gpu_stream_buffer_size =
         this->_gpu_mem_size / this->cuda_stream_count;
@@ -150,14 +147,9 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::find_partition_parms() {
 
       unsigned short partition_axis = this->_get_next_partition_axis();
       this->partition_dims[partition_axis]++;
-      // this->partition_dims[0] = 4;
-      // this->partition_dims[1] = 5;
-      // this->partition_dims[2] = 1;
-      // this->partition_dims[3] = 1;
 
       this->_update_block_dims();
       this->estimate_component_costs();
-      this->to_string();
     } while (!(this->get_all_data_size() < gpu_stream_buffer_size &&
                this->block_count >= total_cuda_stream_count));
     printf("Done partitioning\n");
@@ -181,8 +173,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::find_partition_parms() {
         (this->order * sizeof(index_t) + (1 + this->rank) * sizeof(value_t));
   }
 
-  printf("~~~~~~~~\n");
-  this->to_string();
+  PrintLine();
 }
 
 OPTIMIZER_TEMPLATE
@@ -219,24 +210,26 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::to_string() {
   for (int axis = 0; axis < this->order; ++axis) {
     printf("Tensor dim[%d] = %u\n", axis, this->dims[axis]);
   }
-  printf("----------------------\n");
+  PrintLine();
   for (int axis = 0; axis < this->order; ++axis) {
     printf("Partition dim[%d] = %u\n", axis, this->partition_dims[axis]);
   }
-  printf("----------------------\n");
+  PrintLine();
   printf("# blocks: %lu\n", this->block_count);
-  printf("----------------------\n");
+  PrintLine();
   for (int axis = 0; axis < this->order; ++axis) {
     printf("Block dim[%d] = %u\n", axis, this->block_dims[axis]);
   }
+
   std::cout << "@@@ All data size for a CUDA execution seq.\t"
             << common::HumanReadable{(std::uintmax_t)this->get_all_data_size()}
             << std::endl;
-  std::cout
-      << "@@@ All amount of transfer data size \t"
-      << common::HumanReadable{(std::uintmax_t)this->get_all_transfer_size()}
-      << std::endl;
-  printf("----------------------\n");
+
+  std::cout << "@@@ All amount of transfer data size \t"
+            << common::HumanReadable{(std::uintmax_t)this->get_all_transfer_size()}
+            << std::endl;
+
+  PrintLine();
   printf("Max. Available nonzeros per task: %lu\n",
          this->avail_nnz_count_per_task);
   printf("The number of CUDA Streams in a GPU: %d\n", this->cuda_stream_count);
@@ -369,7 +362,6 @@ unsigned short Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_next_partition_axis() {
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_update_block_dims() {
   // Initialize block dimensions
-  // MYPRINT("[ OPTIMIZER ]update_block_dims\n");
   this->block_count = 1;
   for (unsigned short axis = 0; axis < this->order; ++axis) {
     this->block_dims[axis] =
@@ -385,6 +377,5 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_update_block_dims() {
 
   this->predicted_nnz_count = (this->nnz_count + block_count - 1) / block_count;
 }
-
 }  // namespace gputucker
 }  // namespace supertensor

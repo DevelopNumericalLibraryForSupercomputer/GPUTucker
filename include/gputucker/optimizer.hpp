@@ -3,13 +3,12 @@
 
 #include "common/human_readable.hpp"
 #include "gputucker/constants.hpp"
+#include "gputucker/tensor.hpp"
 
 namespace supertensor {
-
 namespace gputucker {
 
 #define OPTIMIZER_TEMPLATE template <typename TensorType>
-
 #define OPTIMIZER_TEMPLATE_ARGS TensorType
 
 OPTIMIZER_TEMPLATE
@@ -20,8 +19,8 @@ class Optimizer {
 
  public:
   enum Component { SubTensor, CoreTensor, SubFactors, Delta, ComponentCount };
-  std::string str_Component[Component::ComponentCount] = {
-      "SubTensor", "CoreTensor", "SubFactors", "Delta"};
+  std::string str_Component[Component::ComponentCount] = { "SubTensor", "CoreTensor", "SubFactors", "Delta"};
+
   struct CostMetric {
     size_t data_size;
     size_t transfer_size;
@@ -31,20 +30,18 @@ class Optimizer {
     CostMetric() : CostMetric(0, 0) {}
     void to_string() {
       std::cout << "-> Data size: "
-                << common::HumanReadable{(std::uintmax_t)this->data_size}
-                << std::endl;
+                << common::HumanReadable{(std::uintmax_t)this->data_size} << std::endl;
       std::cout << "-> Transfer size: "
-                << common::HumanReadable{(std::uintmax_t)this->transfer_size}
-                << std::endl;
+                << common::HumanReadable{(std::uintmax_t)this->transfer_size} << std::endl;
     }
   };  // struct CostMetric
 
  public:
   Optimizer() {}
   ~Optimizer() {}
-  void initialize(tensor_t *tensor, unsigned short new_gpu_count,
+  void Initialize(tensor_t *tensor, unsigned short new_gpu_count,
                   unsigned int new_rank, uint64_t new_gpu_mem_size);
-  void initialize(unsigned short new_order, index_t *new_dims,
+  void Initialize(unsigned short new_order, index_t *new_dims,
                   uint64_t new_nnz_count, unsigned short new_gpu_count,
                   unsigned int new_rank, uint64_t new_gpu_mem_size);
 
@@ -78,8 +75,7 @@ class Optimizer {
   size_t _get_transfer_size_sub_factors();
   size_t _get_transfer_size_delta();  // intermediate data size
 
-  /* determining the next axis or dimension along which the data will be
-   * partitioned. */
+  /* determining the next axis or dimension along which the data will be partitioned. */
   unsigned short _get_next_partition_axis();
 
   /* Adjusting block dimensions using partition dimensions */
@@ -98,7 +94,7 @@ class Optimizer {
   index_t *partition_dims;
   uint64_t block_count;
 
-  uint64_t predicted_nnz_count;  // (estimate)non zero per a task
+  uint64_t predicted_nnz_count;  // (estimated) nonzeros per a task
   int cuda_stream_count;
   uint64_t avail_nnz_count_per_task;
 

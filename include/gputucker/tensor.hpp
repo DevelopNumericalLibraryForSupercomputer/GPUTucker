@@ -7,13 +7,12 @@ namespace supertensor {
 namespace gputucker {
 
 #define TENSOR_TEMPLATE template <typename BlockType>
-
 #define TENSOR_TEMPLATE_ARGS BlockType
 
 TENSOR_TEMPLATE
 class Tensor {
  public:
-  using this_t = gputucker::Tensor<TENSOR_TEMPLATE_ARGS>;
+  using this_t = Tensor<TENSOR_TEMPLATE_ARGS>;
 
   using block_t = BlockType;
   using index_t = typename block_t::index_t;
@@ -41,7 +40,6 @@ class Tensor {
   Tensor();
   ~Tensor();
 
-  void reset(this_t *other);
   void allocate_blocks();  // allocate memory for the blocks
 
   void make_blocks(const index_t *new_partition_dims, uint64_t *histogram);
