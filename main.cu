@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
     tensor_manager_t* tensor_manager = new tensor_manager_t;
     tensor_t* input_tensor = new tensor_t(options->get_order());
     tensor_manager->ParseFromFile(options->get_input_path(), &input_tensor);
-    input_tensor->to_string();
+    input_tensor->ToString();
 
     // Allocate memory on GPU
     void* p;

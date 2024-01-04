@@ -63,14 +63,10 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
 
   index_t *global_max_dims;
   uint64_t global_nnz_count = 0;
+
   value_t *values;
-
   index_t *indices[order];
-
-  (*tensor)->to_string();
-  PrintLine();
   
-
 #pragma omp parallel private(thread_id)
   {
     thread_id = omp_get_thread_num();
@@ -111,11 +107,9 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
       // prefix sum
       nnz_prefix_sum[0] = 0;
       for (int tid = 1; tid < thread_count; ++tid) {
-        nnz_prefix_sum[tid] =
-            nnz_prefix_sum[tid - 1] + (pos[tid - 1].size() - 1);
+        nnz_prefix_sum[tid] = nnz_prefix_sum[tid - 1] + (pos[tid - 1].size() - 1);
       }
-      assert(nnz_prefix_sum.back() + pos[thread_count - 1].size() - 1 ==
-             global_nnz_count);
+      assert(nnz_prefix_sum.back() + pos[thread_count - 1].size() - 1 == global_nnz_count);
 
       global_max_dims = gputucker::allocate<index_t>(order);
       for (unsigned short axis = 0; axis < order; ++axis) {
@@ -133,8 +127,8 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
 
       // Tokenize	the slice by newline characters
       char *rest = strtok_r(buff, "\n", &buff);
-
       char *token;
+
       if (rest != NULL) {
         // Calculate the offset of the current thread in the global index
         uint64_t offset = nnz_prefix_sum[thread_id];
@@ -145,14 +139,11 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
           index_t idx = strtoull(token, NULL, 10);
 
           // Update the maximum and minimum indices for the current axis
-          local_max_dims[thread_id][axis] =
-              std::max<index_t>(local_max_dims[thread_id][axis], idx);
-          local_dim_offset[thread_id][axis] =
-              std::min<index_t>(local_dim_offset[thread_id][axis], idx);
+          local_max_dims[thread_id][axis] = std::max<index_t>(local_max_dims[thread_id][axis], idx);
+          local_dim_offset[thread_id][axis] = std::min<index_t>(local_dim_offset[thread_id][axis], idx);
 
-          // Store the current index in the global indices array, with
-          // 1-indexing (subtract 1 from idx)
-
+          // Store the current index in the global indices array, 
+          // with 1-indexing (subtract 1 from idx)
           indices[axis][offset + nnz - 1] = idx - 1;  // 1-Indexing
           ++axis;
         }  // !while
@@ -163,8 +154,7 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
         if (token != NULL) {
           val = std::stod(token);
         } else {
-          // If the slice does not have a value,
-          // generate a random one between 0 and 1
+          // If the slice does not have a value, generate a random one between 0 and 1
           val = gputucker::frand<value_t>(0, 1);
         }
         values[offset + nnz - 1] = val;
@@ -176,12 +166,10 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
     {
       // Update the global max dimension for the axis
       for (unsigned short axis = 0; axis < order; ++axis) {
-        global_max_dims[axis] = std::max<index_t>(
-            global_max_dims[axis], local_max_dims[thread_id][axis]);
+        global_max_dims[axis] = std::max<index_t>(global_max_dims[axis], local_max_dims[thread_id][axis]);
         if (local_dim_offset[thread_id][axis] < 1) {
           // outputs are based on base-0 indexing
-          throw std::runtime_error(ERROR_LOG(
-              "We note that input tensors must follow base-1 indexing"));
+          throw std::runtime_error(ERROR_LOG("We note that input tensors must follow base-1 indexing"));
         }
       }
     } // !omp critical
@@ -192,18 +180,12 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
   (*tensor)->set_dims(global_max_dims);
   (*tensor)->set_nnz_count(global_nnz_count);
 
-  index_t *new_partition_dims = gputucker::allocate<index_t>(order);
-  uint64_t *histogram = gputucker::allocate<uint64_t>(1);
-  histogram[0] = global_nnz_count;
+  // uint64_t *histogram = gputucker::allocate<uint64_t>(1);
+  // histogram[0] = global_nnz_count;
 
-  for (unsigned axis = 0; axis < order; ++axis) {
-    new_partition_dims[axis] = 1;
-  }
-
-  (*tensor)->make_blocks(new_partition_dims, histogram);
-  (*tensor)->set_data(block_id, &indices[0], values);
-
-  (*tensor)->to_string();
+  (*tensor)->MakeBlocks(1, &global_nnz_count);
+  (*tensor)->InsertData(0, &indices[0], values);
+  (*tensor)->blocks[0]->ToString();
 
   // Deallocate
   delete[] pos;
@@ -211,9 +193,10 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
   delete[] local_dim_offset;
   nnz_prefix_sum.clear();
   std::vector<uint64_t>().swap(nnz_prefix_sum);
+  // gputucker::deallocate<index_t>(new_partition_dims);
+  // gputucker::deallocate<uint64_t>(histogram);
 
-  gputucker::deallocate<index_t>(new_partition_dims);
-  gputucker::deallocate<uint64_t>(histogram);
+  return true;
 }
 
 

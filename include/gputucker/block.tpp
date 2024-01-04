@@ -8,25 +8,26 @@
 namespace supertensor {
 namespace gputucker {
 BLOCK_TEMPLATE
-Block<BLOCK_TEMPLATE_ARGS>::Block() : Block(0, NULL, 0, NULL) {}
+Block<BLOCK_TEMPLATE_ARGS>::Block() : Block(0, NULL, 0, NULL, 0) {}
 
 BLOCK_TEMPLATE
 Block<BLOCK_TEMPLATE_ARGS>::Block(uint64_t new_block_id,
                                   unsigned short new_order)
-    : Block(new_block_id, NULL, new_order, NULL) {}
+    : Block(new_block_id, NULL, new_order, NULL, 0) {}
 
 BLOCK_TEMPLATE
 Block<BLOCK_TEMPLATE_ARGS>::Block(uint64_t new_block_id,
                                   index_t *new_block_coord,
                                   unsigned short new_order, 
-                                  index_t *new_dims) {
+                                  index_t *new_dims,
+                                  uint64_t new_nnz_count) {
   if (this->order < 1) {
     throw std::runtime_error(
         ERROR_LOG("[ERROR] Block order should be larger than 1."));
   }
   order = new_order;
   this->dims = gputucker::allocate<index_t>(this->order);
-  this->nnz_count = 0;
+  this->nnz_count = new_nnz_count;
   this->_block_id = new_block_id;
   this->_base_dims = gputucker::allocate<index_t>(this->order);
   this->_block_coord = gputucker::allocate<index_t>(this->order);
@@ -36,6 +37,11 @@ Block<BLOCK_TEMPLATE_ARGS>::Block(uint64_t new_block_id,
     this->_block_coord[axis] = new_block_coord[axis];  // for setting base_dims
     this->_base_dims[axis] = this->dims[axis] * new_block_coord[axis];
   }
+
+  this->_is_allocated = false;
+  // if(this->nnz_count != 0) {
+  //   AllocateData();
+  // }
 }
 
 BLOCK_TEMPLATE
@@ -49,6 +55,8 @@ Block<BLOCK_TEMPLATE_ARGS>::~Block() {
     gputucker::deallocate<index_t>(where_nnz[axis]);
   }
   gputucker::deallocate<value_t>(values);
+  this->_is_allocated = false;
+  nnz_count = 0;
 }
 
 /**
@@ -78,7 +86,7 @@ Block<BLOCK_TEMPLATE_ARGS>::~Block() {
 BLOCK_TEMPLATE
 void Block<BLOCK_TEMPLATE_ARGS>::AssignIndicesToEachMode() {
   assert(indices != NULL);
-  
+
   uint64_t *temp_nnz[gputucker::constants::kMaxOrder];
 
   // Loop through each axis and allocate memory for temporary variables to store
@@ -162,13 +170,16 @@ void Block<BLOCK_TEMPLATE_ARGS>::AssignIndicesToEachMode() {
 
 BLOCK_TEMPLATE
 void Block<BLOCK_TEMPLATE_ARGS>::AllocateData() {
-  assert(this->nnz_count != 0);
+  assert(nnz_count != 0);
+  assert(this->_is_allocated == false);
+
   // Allocate memory for indices in each axis
-  for (unsigned short axis = 0; axis < this->order; ++axis) {
-    this->indices[axis] = gputucker::allocate<index_t>(this->nnz_count);
+  for (unsigned short axis = 0; axis < order; ++axis) {
+    indices[axis] = gputucker::allocate<index_t>(nnz_count);
   }
   // Allocate memory for values
-  this->values = gputucker::allocate<value_t>(this->nnz_count);
+  values = gputucker::allocate<value_t>(nnz_count);
+  this->_is_allocated = true;
 }
 
 BLOCK_TEMPLATE

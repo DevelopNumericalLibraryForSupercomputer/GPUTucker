@@ -23,10 +23,12 @@ class Block {
   Block(uint64_t new_block_id, 
         index_t *new_block_coord,
         unsigned short new_order, 
-        index_t *new_dims);
+        index_t *new_dims,
+        uint64_t new_nnz_count);
   ~Block();
 
   bool IsEmpty(){ return this->nnz_count == 0; }
+  bool IsAllocated(){ return this->_is_allocated; }
   void AllocateData();
   // void SetupData(uint64_t new_nnz_count);
   // void InsertNonzero(uint64_t pos, index_t *new_coord, value_t new_value);
@@ -41,6 +43,7 @@ class Block {
   /* Setter */
   void set_nnz_count(uint64_t new_nnz_count) { this->nnz_count = new_nnz_count; }
   void set_dims(index_t *new_dims);
+  void set_is_allocated(bool new_is_allocated) { this->_is_allocated = new_is_allocated; }
 
 
 public:
@@ -61,6 +64,7 @@ public:
   index_t *_base_dims;
   uint64_t _block_id;
   index_t *_block_coord;
+  bool _is_allocated; // whether the data is allocated
 
 }; // class Block
   
