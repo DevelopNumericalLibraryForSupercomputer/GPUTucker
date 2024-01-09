@@ -62,7 +62,10 @@
     "memory_resource": "cpp",
     "random": "cpp",
     "dense": "cpp",
-    "*.tpp": "cpp"
+    "*.tpp": "cpp",
+    "hash_map": "cpp",
+    "hash_set": "cpp",
+    "slist": "cpp"
   },
   
   "cmake.configureSettings": {},
@@ -73,8 +76,7 @@
   // "C_Cpp.errorSquiggles": "Disabled",
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
-  "editor.formatOnSave": true,
-  "prettier.printWidth": 120,
+  "editor.formatOnSave":false,
   "editor.fontFamily": "D2Coding, Menlo, Monaco, 'Courier New', monospace",
   "editor.formatOnPaste": false,
   "editor.formatOnType": false,
@@ -84,10 +86,13 @@
     "editor.defaultFormatter": "ms-vscode.cpptools"
   },
   "C_Cpp.clang_format_fallbackStyle": "Google",
-  "editor.wordWrap": "off",
   "prettier.bracketSameLine": false,
   "[cpp]": {
     "editor.defaultFormatter": "ms-vscode.cpptools"
   },
-  "editor.wordWrapColumn": 100
+  "editor.wordWrapColumn": 150,
+  "editor.wordWrap": "on",
+
+  
+  
 }

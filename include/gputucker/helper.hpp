@@ -29,10 +29,16 @@ namespace gputucker {
 #define MYPRINT(Fmt, ...) \
   { printf(CYN Fmt RESET, ##__VA_ARGS__); }
 
-inline std::string make_error_log(std::string msg, char const *file,
-                                  char const *function, std::size_t line) {
-  return std::string{"\n\n" RED} + file + "(" + std::to_string(line) + "): [" +
-         function + "] \n\t" + msg + "\n\n" RESET;
+inline void PrintLine() {
+  std::cout << "-----------------------------" << std::endl;
+}
+
+inline std::string make_error_log(std::string msg, 
+                                  char const *file,
+                                  char const *function, 
+                                  std::size_t line) {
+  return std::string{"\n\n" RED} + file + "(" + std::to_string(line) + "): [" + function + "] \n\t" 
+         + msg + "\n\n" RESET;
 }
 
 #define ERROR_LOG(...) make_error_log(__VA_ARGS__, __FILE__, __func__, __LINE__)
@@ -141,8 +147,8 @@ inline const char *_cuda_get_error_enum(cudaError_t err) {
 inline void _cuda_check(cudaError_t result, char *const func,
                         const char *const file, int const line) {
   if (result) {
-    std::fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file,
-                 line, static_cast<unsigned int>(result),
+    std::fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line, 
+                  static_cast<unsigned int>(result),
                  _cuda_get_error_enum(result), func);
     cudaDeviceReset();
     std::exit(EXIT_FAILURE);
