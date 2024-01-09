@@ -147,8 +147,8 @@ inline const char *_cuda_get_error_enum(cudaError_t err) {
 inline void _cuda_check(cudaError_t result, char *const func,
                         const char *const file, int const line) {
   if (result) {
-    std::fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file,
-                 line, static_cast<unsigned int>(result),
+    std::fprintf(stderr, "CUDA error at %s:%d code=%d(%s) \"%s\" \n", file, line, 
+                  static_cast<unsigned int>(result),
                  _cuda_get_error_enum(result), func);
     cudaDeviceReset();
     std::exit(EXIT_FAILURE);

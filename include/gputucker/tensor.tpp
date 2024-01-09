@@ -31,8 +31,14 @@ Tensor<TENSOR_TEMPLATE_ARGS>::Tensor(unsigned short new_order)
     block_dims[axis] = std::numeric_limits<index_t>::min();
     partition_dims[axis] = 1; // Default partition dimension is 1
   }
-
 }
+
+TENSOR_TEMPLATE
+Tensor<TENSOR_TEMPLATE_ARGS>::Tensor(this_t* other) : Tensor(other->order){
+  set_dims(other->dims);
+  nnz_count = other->nnz_count;
+}
+
 TENSOR_TEMPLATE
 Tensor<TENSOR_TEMPLATE_ARGS>::Tensor() : Tensor(0) {}
 
@@ -55,6 +61,8 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::MakeBlocks(uint64_t new_block_count,
                                     order, 
                                     block_dims, 
                                     histogram[block_id]);
+    std::cout<< "block_id: " << block_id <<"\t" << histogram[block_id] << std::endl;
+    blocks[block_id]->AllocateData();
     if (histogram[block_id] == 0) {
       this->_empty_block_count++;
     }
@@ -70,13 +78,13 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::InsertData(uint64_t block_id,
                                               index_t *new_indices[],
                                               value_t *new_values) {
   assert(block_id < block_count);
-  if(!blocks[block_id]->IsAllocated()) {
+  // if(!blocks[block_id]->IsAllocated()) {
     for (unsigned short axis = 0; axis < order; ++axis) {
       blocks[block_id]->indices[axis] = (index_t *)new_indices[axis];
     }
     blocks[block_id]->values = (value_t *)new_values;
     blocks[block_id]->set_is_allocated(true);
-  }
+  // }
 }
 
 TENSOR_TEMPLATE

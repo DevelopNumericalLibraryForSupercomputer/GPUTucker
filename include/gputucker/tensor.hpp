@@ -21,13 +21,14 @@ class Tensor {
 
  public:
   Tensor(unsigned short new_order);
+  Tensor(this_t* other);
   Tensor();
   ~Tensor();
 
   void MakeBlocks(uint64_t new_block_count, 
                   uint64_t *histogram);
   void InsertData(uint64_t block_id,
-                  index_t** indices,
+                  index_t* indices[],
                   value_t* values);
   void AssignIndicesOfEachBlock();
   void ToString();

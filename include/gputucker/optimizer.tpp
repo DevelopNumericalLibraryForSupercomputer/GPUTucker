@@ -207,13 +207,12 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::ToString() {
   for (int axis = 0; axis < order; ++axis) {
     printf("Partition dim[%d] = %lu\n", axis, partition_dims[axis]);
   }
-
   std::cout << "\t@ All data size for a CUDA execution seq.\t"
             << common::HumanReadable{(std::uintmax_t) GetAllDataSize()} << std::endl;
 
   std::cout << "\t@ All amount of transfer data size \t"
             << common::HumanReadable{(std::uintmax_t) GetAllTransferSize()} << std::endl;
-
+  printf("The number of blocks: %lu\n", block_count);
   printf("Max. Available nonzeros per task: %lu\n", avail_nnz_count_per_task);
   printf("The number of CUDA Streams in a GPU: %d\n", cuda_stream_count);
   printf("The number of GPUs: %d\n", gpu_count);
@@ -228,11 +227,7 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_input_tensor() {
 // Calculates and returns the size of a sub-tensor
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_tensor() {
-  uint64_t block_count = 1;
   unsigned short order = this->_data->order;
-  for (unsigned short axis = 0; axis < order; ++axis) {
-    block_count *= this->partition_dims[axis];
-  }
   size_t ret_size = avg_nnz_count_per_block * (order * sizeof(index_t) + sizeof(value_t));
   // std::cout << ">>> Sub-Tensor Size \t: " <<
   // common::HumanReadable{(std::uintmax_t)ret_size} << std::endl;
@@ -276,11 +271,7 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_delta() {
 }
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_delta() {
-  uint64_t block_count = 1;
-  unsigned short order = order;
-  for (unsigned short axis = 0; axis < order; ++axis) {
-    block_count *= this->partition_dims[axis];
-  }
+  unsigned short order = this->_data->order;
   size_t ret_size = this->avg_nnz_count_per_block * this->rank * sizeof(value_t);
   return ret_size;
 }
@@ -296,12 +287,8 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_core_tensor() {
 }
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_sub_factors() {
-  uint64_t block_count = 1;
   unsigned short order = this->_data->order;
   size_t ret_size = 0;
-  for (unsigned short axis = 0; axis < order; ++axis) {
-    block_count *= this->partition_dims[axis];
-  }
   for (unsigned short axis = 0; axis < order; ++axis) {
     ret_size += block_count * this->block_dims[axis] * this->rank;
   }

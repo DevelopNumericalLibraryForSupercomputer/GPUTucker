@@ -50,9 +50,9 @@ class Optimizer {
   size_t GetAllDataSize();
   size_t GetAllTransferSize();
 
-  void estimate_component_costs();
+  // void estimate_component_costs();
   index_t* FindPartitionParms();
-  void set_available_nnz_count_per_task();
+  // void set_available_nnz_count_per_task();
 
   void ToString();
 
@@ -61,6 +61,12 @@ class Optimizer {
   /* Partitioning methods */
   void _NonzeroBasedPartitioning();
   void _DimensionBasedPartitioning();
+
+   /* determining the next axis or dimension along which the data will be partitioned. */
+  unsigned short _NextPartitionAxis();
+  /* Adjusting block dimensions using partition dimensions */
+  void _RefreshBlockDims();
+  void _AvailableNonzeroCountPerTask();
 
   /* Get data size for a CUDA execution sequence*/
   size_t _get_data_size_input_tensor();
@@ -78,15 +84,6 @@ class Optimizer {
   size_t _get_transfer_size_sub_factors();
   size_t _get_transfer_size_delta();  // intermediate data size
 
-  /* determining the next axis or dimension along which the data will be partitioned. */
-  unsigned short _NextPartitionAxis();
-
-  /* Adjusting block dimensions using partition dimensions */
-  void _RefreshBlockDims();
-
-  void _AvailableNonzeroCountPerTask();
-
-  void _determine_partition_type();
 
  public:
   int cuda_stream_count;

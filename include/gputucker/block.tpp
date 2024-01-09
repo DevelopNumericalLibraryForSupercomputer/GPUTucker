@@ -21,21 +21,21 @@ Block<BLOCK_TEMPLATE_ARGS>::Block(uint64_t new_block_id,
                                   unsigned short new_order, 
                                   index_t *new_dims,
                                   uint64_t new_nnz_count) {
-  if (this->order < 1) {
+  if (new_order < 1) {
     throw std::runtime_error(
         ERROR_LOG("[ERROR] Block order should be larger than 1."));
   }
   order = new_order;
-  this->dims = gputucker::allocate<index_t>(this->order);
-  this->nnz_count = new_nnz_count;
+  dims = gputucker::allocate<index_t>(this->order);
+  nnz_count = new_nnz_count;
   this->_block_id = new_block_id;
   this->_base_dims = gputucker::allocate<index_t>(this->order);
   this->_block_coord = gputucker::allocate<index_t>(this->order);
 
-  this->set_dims(new_dims);
   for (int axis = 0; axis < order; ++axis) {
+    dims[axis] = new_dims[axis];
     this->_block_coord[axis] = new_block_coord[axis];  // for setting base_dims
-    this->_base_dims[axis] = this->dims[axis] * new_block_coord[axis];
+    this->_base_dims[axis] = dims[axis] * new_block_coord[axis];
   }
 
   this->_is_allocated = false;
@@ -72,15 +72,16 @@ Block<BLOCK_TEMPLATE_ARGS>::~Block() {
 // }
 
 
-// BLOCK_TEMPLATE
-// void Block<BLOCK_TEMPLATE_ARGS>::InsertNonzero(uint64_t pos,
-//                                                 index_t *new_coord,
-//                                                 value_t new_value) {
-//   for (unsigned short axis = 0; axis < order; ++axis) {
-//     this->indices[axis][nnz_count - pos] = new_coord[axis] - this->_base_dims[axis];
-//   }
-//   this->values[this->nnz_count - pos] = new_value;
-// }
+BLOCK_TEMPLATE
+void Block<BLOCK_TEMPLATE_ARGS>::InsertNonzero(uint64_t pos,
+                                                index_t *new_coord,
+                                                value_t new_value) {
+  assert(pos <= nnz_count);
+  for (unsigned short axis = 0; axis < order; ++axis) {
+    indices[axis][nnz_count - pos] = new_coord[axis] - this->_base_dims[axis];
+  }
+  values[nnz_count - pos] = new_value;
+}
 
 
 BLOCK_TEMPLATE
@@ -93,14 +94,14 @@ void Block<BLOCK_TEMPLATE_ARGS>::AssignIndicesToEachMode() {
   // the number of non-zero elements, as well as where they are located
   for (unsigned short axis = 0; axis < order; ++axis) {
     temp_nnz[axis] = gputucker::allocate<uint64_t>((this->dims[axis] + 1));
-    this->count_nnz[axis] = gputucker::allocate<uint64_t>((this->dims[axis] + 1));
-    this->where_nnz[axis] = gputucker::allocate<index_t>(this->nnz_count);
+    count_nnz[axis] = gputucker::allocate<uint64_t>((this->dims[axis] + 1));
+    where_nnz[axis] = gputucker::allocate<index_t>(this->nnz_count);
   }
 
   // Loop through each axis and initialize temporary arrays to zero
   for (unsigned short axis = 0; axis < order; ++axis) {
     for (index_t k = 0; k < this->dims[axis]; ++k) {
-      this->count_nnz[axis][k] = 0;
+      count_nnz[axis][k] = 0;
       temp_nnz[axis][k] = 0;
     }
   }
@@ -111,7 +112,7 @@ void Block<BLOCK_TEMPLATE_ARGS>::AssignIndicesToEachMode() {
     for (uint64_t nnz = 0; nnz < this->nnz_count; ++nnz) {
       index_t k = this->indices[axis][nnz];
       assert(k < dims[axis]);
-      this->count_nnz[axis][k]++;
+      count_nnz[axis][k]++;
       temp_nnz[axis][k]++;
     }
   }
@@ -123,22 +124,19 @@ void Block<BLOCK_TEMPLATE_ARGS>::AssignIndicesToEachMode() {
   // Loop through each axis and calculate the starting index of each block
   for (unsigned short axis = 0; axis < order; ++axis) {
     now = 0;
-    uint64_t frequent_idx = 0;
     uint64_t max_count = 0;
 
     for (j = 0; j < dims[axis]; ++j) {
-      k = this->count_nnz[axis][j];
+      k = count_nnz[axis][j];
       if (max_count < k) {
-        frequent_idx = j;
         max_count = k;
       }
-      this->count_nnz[axis][j] = now;
+      count_nnz[axis][j] = now;
       temp_nnz[axis][j] = now;
       now += k;
     }
 
-    this->mode[axis] = frequent_idx;
-    this->count_nnz[axis][j] = now;
+    count_nnz[axis][j] = now;
     temp_nnz[axis][j] = now;
   }
 
@@ -146,22 +144,14 @@ void Block<BLOCK_TEMPLATE_ARGS>::AssignIndicesToEachMode() {
   // and store where each non-zero element is located
   for (unsigned short axis = 0; axis < order; ++axis) {
     uint64_t sum_idx = 0;
-    for (uint64_t nnz = 0; nnz < this->nnz_count; ++nnz) {
-      k = this->indices[axis][nnz];
+    for (uint64_t nnz = 0; nnz < nnz_count; ++nnz) {
+      k = indices[axis][nnz];
       now = temp_nnz[axis][k];
-      this->where_nnz[axis][now] = nnz;
+      where_nnz[axis][now] = nnz;
       temp_nnz[axis][k]++;
       sum_idx += k;
     }
-    this->mean[axis] = sum_idx / this->nnz_count;
   }
-  // Median, mean, mode
-  for (unsigned short axis = 0; axis < order; ++axis) {
-    uint64_t offset = nnz_count % 2 == 0 ? nnz_count / 2 : (nnz_count + 1) / 2;
-    uint64_t nnz = this->where_nnz[axis][offset];
-    this->median[axis] = this->indices[axis][nnz];
-  }
-
   // Deallocates
   for (unsigned short axis = 0; axis < order; ++axis) {
     gputucker::deallocate<uint64_t>(temp_nnz[axis]);
@@ -189,31 +179,32 @@ void Block<BLOCK_TEMPLATE_ARGS>::ToString() {
   int axis;
 
   printf("Block coord: ");
-  for (axis = 0; axis < this->order; ++axis) {
+  for (axis = 0; axis < order; ++axis) {
     printf("[%lu]", this->_block_coord[axis]);
   }
   printf("\n");
 
-  printf("Block order: %d\n", this->order);
+  printf("Block order: %d\n", order);
 
   printf("Block dims: ");
-  for (axis = 0; axis < this->order; ++axis) {
-    printf("%lu", this->dims[axis]);
-    if (axis < this->order - 1) {
+  for (axis = 0; axis < order; ++axis) {
+    printf("%lu", dims[axis]);
+    if (axis < order - 1) {
       printf(" X ");
     } else {
       printf("\n");
     }
   }
 
-  printf("# nnzs: %lu\n", this->nnz_count);
+  printf("# nnzs: %lu\n", nnz_count);
   PrintLine();
 }
 
 BLOCK_TEMPLATE
 void Block<BLOCK_TEMPLATE_ARGS>::set_dims(index_t *new_dims) {
-  for (int axis = 0; axis < this->order; ++axis) {
-    this->dims[axis] = new_dims[axis];
+  for (int axis = 0; axis < order; ++axis) {
+    dims[axis] = new_dims[axis];
+    this->_base_dims[axis] = dims[axis] * this->_block_coord[axis];
   }
 }
 

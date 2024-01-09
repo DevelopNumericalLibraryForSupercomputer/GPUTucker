@@ -184,8 +184,8 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
   // histogram[0] = global_nnz_count;
 
   (*tensor)->MakeBlocks(1, &global_nnz_count);
-  (*tensor)->InsertData(0, &indices[0], values);
-  (*tensor)->blocks[0]->ToString();
+  (*tensor)->InsertData(block_id, &indices[0], values);
+  (*tensor)->blocks[block_id]->ToString();
 
   // Deallocate
   delete[] pos;
@@ -201,8 +201,109 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
 
 
 TENSOR_MANAGER_TEMPLATE
-void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tensor_t** dst, index_t* partition_dims) {
-  // TODO: Implement this function
+template<typename OptimizerType>
+void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tensor_t** dest, OptimizerType* optimizer) {
+
+  printf("... 1) Creating tensor blocks\n");
+  const unsigned short order = (*src)->order;
+  const index_t *const dims = (*src)->dims;
+  const uint64_t nnz_count = (*src)->nnz_count;
+
+  const index_t *const block_dims = optimizer->block_dims;
+  const index_t *const partition_dims = optimizer->partition_dims;
+  const uint64_t block_count = optimizer->block_count;
+
+  index_t **indices = (*src)->blocks[0]->indices;
+  value_t *values = (*src)->blocks[0]->values;
+
+  
+  // 1. Count nonzeros per block
+  std::vector<std::vector<uint64_t>> local_nnz_histograms(omp_get_max_threads(), std::vector<uint64_t>(block_count, 0));
+  std::vector<std::vector<index_t>> local_nnz_coords(omp_get_max_threads(), std::vector<index_t>(order, 0));
+
+  printf("... 2) Counting nonzeros per block\n");
+  #pragma omp parallel
+  {
+    const int thread_id = omp_get_thread_num();
+    const int thread_count = omp_get_num_threads();
+
+    #pragma omp for
+    for (uint64_t nnz = 0; nnz < nnz_count; ++nnz) {
+      // Convert coordinates of nonzero into block id
+      uint64_t block_id = 0;
+      uint64_t mult = 1;
+      for (unsigned short iter = 0; iter < order; ++iter) {
+        unsigned short axis = order - iter - 1;
+        
+        assert(indices[axis][nnz] < dims[axis] && "Coordinate is out of bounds");
+        index_t block_idx = indices[axis][nnz] / block_dims[axis];
+        assert(block_idx < partition_dims[axis] && "Block coordinate is out of bounds");
+        block_id += block_idx * mult;
+        mult *= partition_dims[axis];
+      }
+      assert(block_id < block_count);
+      ++local_nnz_histograms[thread_id][block_id];
+    } // !omp for
+  } // omp parallel
+
+  printf("... 3) Creating blocks\n");
+  uint64_t check_nnz_count = 0;
+  std::vector<uint64_t> global_nnz_histogram(block_count, 0);
+  for (int tid = 0; tid < omp_get_max_threads(); ++tid) {
+    for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
+      global_nnz_histogram[block_id] += local_nnz_histograms[tid][block_id];
+      check_nnz_count += local_nnz_histograms[tid][block_id];
+    }
+  }
+
+  for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
+    std::cout << "Block " << block_id << " has " << global_nnz_histogram[block_id] << " nonzeros" << std::endl;
+  }
+  assert(check_nnz_count == nnz_count);
+  (*dest)->set_partition_dims(partition_dims);
+  (*dest)->MakeBlocks(block_count, global_nnz_histogram.data());
+
+  printf("... 4) Inserting data\n");
+  value_t NormX = 0.0f;
+  omp_lock_t lck;
+  omp_init_lock(&lck);
+
+  for (uint64_t nnz = 0; nnz < nnz_count; ++nnz) {
+    std::vector<index_t> local_tensor_coord(order, 0);
+    value_t val = values[nnz];
+    uint64_t block_id = 0;
+    uint64_t mult = 1;
+    for (unsigned short iter = 0; iter < order; ++iter) {
+      unsigned short axis = order - iter - 1;
+
+      assert(indices[axis][nnz] < dims[axis] && "Coordinate is out of bounds");
+      local_tensor_coord[axis] = indices[axis][nnz];
+      index_t block_idx = indices[axis][nnz] / block_dims[axis];
+  
+      assert(block_idx < partition_dims[axis] && "Block coordinate is out of bounds");
+      block_id += block_idx * mult;
+      mult *= partition_dims[axis];
+    }
+    assert(block_id < block_count);
+    uint64_t pos;
+    pos = global_nnz_histogram[block_id];
+    --global_nnz_histogram[block_id];
+
+    (*dest)->blocks[block_id]->InsertNonzero(pos, local_tensor_coord.data(), val);
+    NormX += val * val;
+  }
+
+  // Compute norm
+  (*dest)->norm = std::sqrt(NormX);
+
+  // Assign indices and print result
+  (*dest)->AssignIndicesOfEachBlock();
+
+  // Destroy locks and free memory
+  global_nnz_histogram.clear();
+  std::vector<uint64_t>().swap(global_nnz_histogram);
+  printf("... 5) Done\n");
+
 }
 
 

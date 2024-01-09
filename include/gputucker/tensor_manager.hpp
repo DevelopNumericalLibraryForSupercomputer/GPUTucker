@@ -18,7 +18,8 @@ class TensorManager {
   ~TensorManager();
   
   bool ParseFromFile(const std::string &file_name, tensor_t** tensor);
-  void CreateTensorBlocks(tensor_t** src, tensor_t** dst, index_t* partition_dims);
+  template<typename OptimizerType>
+  void CreateTensorBlocks(tensor_t** src, tensor_t** dest, OptimizerType* optimizer);
 
 private:
   bool _ReadData(const char *buffer, const size_t buffer_length, tensor_t** tensor);

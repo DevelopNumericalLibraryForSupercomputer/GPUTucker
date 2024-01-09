@@ -57,8 +57,14 @@ int main(int argc, char* argv[]) {
     index_t* partition_dims = optimizer->FindPartitionParms();
     optimizer->ToString();
 
-    tensor_t* tensor_blocks = new tensor_t(options->get_order());
-    tensor_manager->CreateTensorBlocks(&input_tensor, &tensor_blocks, optimizer->partition_dims);
+    tensor_t* tensor_blocks = new tensor_t(input_tensor);
+    PrintLine();
+    PrintLine();
+    tensor_blocks->ToString();
+    PrintLine();
+    PrintLine();
+    tensor_manager->CreateTensorBlocks<optimizer_t>(&input_tensor, &tensor_blocks, optimizer);
+    tensor_blocks->ToString();
 
   } else {
     std::cout << "ERROR - problem with options." << std::endl;
