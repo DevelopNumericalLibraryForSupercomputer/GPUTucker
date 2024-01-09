@@ -53,8 +53,9 @@ int main(int argc, char* argv[]) {
 
     // Create optimizer
     optimizer_t* optimizer = new optimizer_t;
-    optimizer->Initialize(options->get_gpu_count(), options->get_rank(), avail_gpu_mem);
-    optimizer->FindPartitionParms(input_tensor);
+    optimizer->Initialize(options->get_gpu_count(), options->get_rank(), avail_gpu_mem, input_tensor);
+    index_t* partition_dims = optimizer->FindPartitionParms();
+    optimizer->ToString();
 
     tensor_t* tensor_blocks = new tensor_t(options->get_order());
     tensor_manager->CreateTensorBlocks(&input_tensor, &tensor_blocks, optimizer->partition_dims);

@@ -64,11 +64,13 @@ class Optimizer {
 
   /* Get data size for a CUDA execution sequence*/
   size_t _get_data_size_input_tensor();
-  size_t _get_data_size_sub_tensor();
   size_t _get_data_size_core_tensor();
   size_t _get_data_size_all_factors();
-  size_t _get_data_size_each_sub_factor();
   size_t _get_data_size_delta();
+
+  /* sub */
+  size_t _get_data_size_sub_tensor();
+  size_t _get_data_size_sub_factors();
   size_t _get_data_size_sub_delta();  // intermediate data size using available nnz count;
 
   size_t _get_transfer_size_sub_tensor();
@@ -77,10 +79,12 @@ class Optimizer {
   size_t _get_transfer_size_delta();  // intermediate data size
 
   /* determining the next axis or dimension along which the data will be partitioned. */
-  unsigned short _get_next_partition_axis();
+  unsigned short _NextPartitionAxis();
 
   /* Adjusting block dimensions using partition dimensions */
   void _RefreshBlockDims();
+
+  void _AvailableNonzeroCountPerTask();
 
   void _determine_partition_type();
 
