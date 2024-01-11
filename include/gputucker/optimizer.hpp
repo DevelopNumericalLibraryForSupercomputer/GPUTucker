@@ -44,9 +44,6 @@ class Optimizer {
                   uint64_t new_gpu_mem_size,
                   tensor_t* new_data);
 
-  // size_t GetDataSize(Component comp);
-  // size_t GetTransferSize(Component comp);
-
   size_t GetAllDataSize();
   size_t GetAllTransferSize();
 
