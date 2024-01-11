@@ -39,9 +39,6 @@ Block<BLOCK_TEMPLATE_ARGS>::Block(uint64_t new_block_id,
   }
 
   this->_is_allocated = false;
-  // if(this->nnz_count != 0) {
-  //   AllocateData();
-  // }
 }
 
 BLOCK_TEMPLATE
@@ -58,18 +55,6 @@ Block<BLOCK_TEMPLATE_ARGS>::~Block() {
   this->_is_allocated = false;
   nnz_count = 0;
 }
-
-/**
- * Sets up the data for a Block object by allocating memory for indices and
- * values
- * @param new_nnz_count the number of non-zero elements in the Block
- */
-// BLOCK_TEMPLATE
-// void Block<BLOCK_TEMPLATE_ARGS>::SetupData(uint64_t new_nnz_count) {
-//   // Set the number of non-zero elements in the Block
-//   this->set_nnz_count(new_nnz_count);
-//   this->AllocateData();
-// }
 
 
 BLOCK_TEMPLATE

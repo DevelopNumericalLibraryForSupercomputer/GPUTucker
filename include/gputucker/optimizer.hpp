@@ -18,23 +18,6 @@ class Optimizer {
   using value_t = typename tensor_t::value_t;
 
  public:
-  // enum Component { SubTensor, CoreTensor, SubFactors, Delta, ComponentCount };
-  // std::string str_Component[Component::ComponentCount] = { "SubTensor", "CoreTensor", "SubFactors", "Delta"};
-
-  // struct CostMetric {
-  //   size_t data_size;
-  //   size_t transfer_size;
-
-  //   CostMetric(size_t new_data_size, size_t new_transfer_size)
-  //       : data_size(new_data_size), transfer_size(new_transfer_size) {}
-  //   CostMetric() : CostMetric(0, 0) {}
-  //   void to_string() {
-  //     std::cout << "-> Data size: "
-  //               << common::HumanReadable{(std::uintmax_t)this->data_size} << std::endl;
-  //     std::cout << "-> Transfer size: "
-  //               << common::HumanReadable{(std::uintmax_t)this->transfer_size} << std::endl;
-  //   }
-  // };  // struct CostMetric
 
  public:
   Optimizer() {}

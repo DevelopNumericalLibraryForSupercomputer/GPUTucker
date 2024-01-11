@@ -27,8 +27,6 @@ class CommandLineOptions {
   bool ValidateFile();
 
  private:
-  // CommandLineOptions(const CommandLineOptions &rhs);
-  // CommandLineOptions &operator=(const CommandLineOptions &rhs);
 
   po::options_description _options;
   std::string _input_path;

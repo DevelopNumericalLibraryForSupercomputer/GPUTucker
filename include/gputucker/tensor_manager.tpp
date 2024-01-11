@@ -180,9 +180,6 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
   (*tensor)->set_dims(global_max_dims);
   (*tensor)->set_nnz_count(global_nnz_count);
 
-  // uint64_t *histogram = gputucker::allocate<uint64_t>(1);
-  // histogram[0] = global_nnz_count;
-
   (*tensor)->MakeBlocks(1, &global_nnz_count);
   (*tensor)->InsertData(block_id, &indices[0], values);
   (*tensor)->blocks[block_id]->ToString();
@@ -193,8 +190,6 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
   delete[] local_dim_offset;
   nnz_prefix_sum.clear();
   std::vector<uint64_t>().swap(nnz_prefix_sum);
-  // gputucker::deallocate<index_t>(new_partition_dims);
-  // gputucker::deallocate<uint64_t>(histogram);
 
   return true;
 }
@@ -306,52 +301,5 @@ void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tens
 
 }
 
-
-// TENSOR_MANAGER_TEMPLATE
-// void TensorManager<TENSOR_MANAGER_ARGS>::_count_nonzeros_per_block(
-//     std::vector<uint64_t> &global_histogram) {
-//   MYPRINT("... 2) Counting nonzeros per block\n");
-
-//   uint64_t nnz_count = tensor->nnz_count;
-//   uint64_t block_count = tensor->block_count;
-//   int order = tensor->order;
-
-//   std::vector<uint64_t> *local_histogram;
-//   std::vector<index_t> *local_coord;
-//   int thread_count = 0;
-//   int thread_id = 0;
-
-// #pragma omp parallel private(thread_id)
-//   {
-//     thread_id = omp_get_thread_num();
-//     thread_count = omp_get_num_threads();
-
-// #pragma omp single
-//     {
-//       local_histogram = new std::vector<uint64_t>[thread_count];
-//       local_coord = new std::vector<index_t>[thread_count];
-//     }
-
-//     local_histogram[thread_id].resize(block_count);
-//     local_coord[thread_id].resize(order);
-
-//     for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
-//       local_histogram[thread_id][block_id] = 0;
-//     }
-// #pragma omp barrier
-
-// #pragma omp for
-//     for (uint64_t nnz = 0; nnz < nnz_count; ++nnz) {
-//       uint64_t block_id = tensor->offset_to_block_id(nnz);
-//       local_histogram[thread_id][block_id]++;
-//     }
-//   }  // !omp parallel
-
-//   for (index_t block_id = 0; block_id < block_count; ++block_id) {
-//     for (int tid = 0; tid < thread_count; ++tid) {
-//       global_histogram[block_id] += local_histogram[tid][block_id];
-//     }
-//   }
-// }
 }  // namespace gputucker
 }  // namespace supertensor

@@ -35,7 +35,6 @@ case err:                   \
 
   /* Memset */
   void device_memset(void *dst, int value, size_t size);
-  // void device_memset_async();
 
   /* Synchronize */
   void stream_synchronize(cudaStream_t const &stream);

@@ -140,38 +140,6 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::set_partition_dims(const index_t *new_partiti
   this->_RefreshDims();
 }
 
-// TENSOR_TEMPLATE
-// void Tensor<TENSOR_TEMPLATE_ARGS>::set_data(uint64_t block_id,
-//                                             index_t *new_indices[],
-//                                             value_t *new_values) {
-//   assert(this->order > 1);
-
-//   for (unsigned short axis = 0; axis < this->order; ++axis) {
-//     this->blocks[block_id]->indices[axis] = (index_t *)new_indices[axis];
-//   }
-//   this->blocks[block_id]->values = (value_t *)new_values;
-// }
-
-// TENSOR_TEMPLATE
-// Tensor<TENSOR_TEMPLATE_ARGS>::index_t
-// Tensor<TENSOR_TEMPLATE_ARGS>::get_max_partition_dim() {
-//   index_t dim = this->partition_dims[0];
-
-//   for (unsigned short axis = 1; axis < order; ++axis) {
-//     dim = std::max<index_t>(dim, this->partition_dims[axis]);
-//   }
-//   return dim;
-// }
-// TENSOR_TEMPLATE
-// Tensor<TENSOR_TEMPLATE_ARGS>::index_t Tensor<TENSOR_TEMPLATE_ARGS>::get_max_block_dim() {
-//   index_t dim = block_dims[0];
-
-//   for (unsigned short axis = 1; axis < order; ++axis) {
-//     dim = std::max<index_t>(dim, this->block_dims[axis]);
-//   }
-//   return dim;
-// }
-
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::_RefreshDims() {
   this->_max_partition_dim = 0;
