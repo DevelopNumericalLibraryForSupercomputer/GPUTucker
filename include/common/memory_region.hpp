@@ -52,7 +52,7 @@ namespace common
   MEMORY_REGION_TEMPLATE
   MemoryRegion<MEMORY_REGION_TEMPLATE_ARGS>::MemoryRegion(void *new_ptr, uint64_t new_size, unsigned new_count)
   {
-    initialize(new_ptr, new_size, new_count);
+    Initialize(new_ptr, new_size, new_count);
   }
   MEMORY_REGION_TEMPLATE
   MemoryRegion<MEMORY_REGION_TEMPLATE_ARGS>::MemoryRegion(uint64_t new_size, unsigned new_count) : MemoryRegion(NULL, new_size, new_count)
@@ -78,7 +78,7 @@ namespace common
   MEMORY_REGION_TEMPLATE
   void MemoryRegion<MEMORY_REGION_TEMPLATE_ARGS>::set_memory_region(this_t *other)
   {
-    initialize(other->get_ptr(0), other->get_size(), other->get_count());
+    Initialize(other->get_ptr(0), other->get_size(), other->get_count());
   }
 
   MEMORY_REGION_TEMPLATE
