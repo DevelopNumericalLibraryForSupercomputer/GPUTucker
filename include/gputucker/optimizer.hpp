@@ -27,16 +27,9 @@ class Optimizer {
                   uint64_t new_gpu_mem_size,
                   tensor_t* new_data);
 
-  // size_t GetDataSize(Component comp);
-  // size_t GetTransferSize(Component comp);
-
   size_t GetAllDataSize();
   size_t GetAllTransferSize();
-
-  // void estimate_component_costs();
   index_t* FindPartitionParms();
-  // void set_available_nnz_count_per_task();
-
   void ToString();
 
  private:
