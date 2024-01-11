@@ -4,13 +4,44 @@
 #include "cuda_runtime_api.h"
 
 #include "common/memory_region.hpp"
+#include "gputucker/tensor.hpp"
 
 namespace supertensor {
 namespace gputucker {
 
+  #define CUDAAGENT_TEMPLATE \
+    template <typename TensorType>
+  #define CUDAAGENT_TEMPLATE_ARGS \
+    TensorType
+
+  CUDAAGENT_TEMPLATE
   class CudaAgent {
   public:
+    using tensor_t = TensorType;
+    using index_t = typename tensor_t::index_t;
+    using value_t = typename tensor_t::value_t;
     using memrgn_t = common::MemoryRegion<char>;
+
+    struct DeviceBuffer {
+
+      using int_mr_t = common::MemoryRegion<int>;
+      using index_mr_t = common::MemoryRegion<index_t>;
+      using value_mr_t = common::MemoryRegion<value_t>;
+      using addr_mr_t = common::MemoryRegion<std::uintptr_t *>;
+
+      index_mr_t X_indices[gputucker::constants::kMaxOrder];
+      value_mr_t X_values;
+      addr_mr_t X_idx_addr;
+
+      index_mr_t core_indices[gputucker::constants::kMaxOrder];
+      value_mr_t core_values;
+      addr_mr_t core_idx_addr;
+
+      value_mr_t factors[gputucker::constants::kMaxOrder];
+      addr_mr_t factor_addr;
+
+      value_mr_t delta;
+    };
     
     CudaAgent();
     CudaAgent(unsigned id);
@@ -37,5 +68,6 @@ namespace gputucker {
 }
 }
 
+#include "gputucker/cuda_agent.tpp"
 
 #endif // CUDA_AGENT_HPP_
