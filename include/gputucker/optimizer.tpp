@@ -17,43 +17,9 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::Initialize(unsigned short new_gpu_count
   gpu_count = new_gpu_count;
   gpu_mem_size = new_gpu_mem_size;
   
-  // component_cost = gputucker::allocate<CostMetric>(static_cast<int>(Component::ComponentCount));
   partition_type = gputucker::enums::PartitionTypes::kDimensionPartition;
   this->_data = new_data;
 }
-// OPTIMIZER_TEMPLATE
-// size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetDataSize(Component comp) {
-//   switch (comp) {
-//     case SubTensor:
-//       return this->_get_data_size_sub_tensor();
-//     case CoreTensor:
-//       return this->_get_data_size_core_tensor();
-//     case SubFactors:
-//       return this->_get_data_size_each_sub_factor();
-//     case Delta:
-//       return this->_get_data_size_sub_delta();
-//     default:
-//       std::cout << "Invalid Component" << std::endl;
-//       return 0;
-//   }
-// }
-
-// OPTIMIZER_TEMPLATE
-// size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetTransferSize(Component comp) {
-//   switch (comp) {
-//     case SubTensor:
-//       return this->_get_transfer_size_sub_tensor();
-//     case CoreTensor:
-//       return this->_get_transfer_size_core_tensor();
-//     case SubFactors:
-//       return this->_get_transfer_size_sub_factors();
-//     case Delta:
-//       return this->_get_transfer_size_delta();
-//     default:
-//       std::cout << "Invalid Component" << std::endl;
-//       return 0;
-//   }
-// }
 
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllDataSize() {
@@ -79,21 +45,9 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllTransferSize() {
   ret_size += this->_get_transfer_size_core_tensor();
   ret_size += this->_get_transfer_size_sub_factors();
   ret_size += this->_get_transfer_size_delta();
-  // for (int i = 0; i < static_cast<int>(Component::ComponentCount); ++i) {
-  //   Component c = static_cast<Component>(i);
-  //   ret_size += this->component_cost[i].transfer_size;
-  // }
   return ret_size;
 }
 
-// OPTIMIZER_TEMPLATE
-// void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::estimate_component_costs() {
-//   for (int i = 0; i < static_cast<int>(Component::ComponentCount); ++i) {
-//     Component c = static_cast<Component>(i);
-//     this->component_cost[i].data_size = this->get_data_size(c);
-//     this->component_cost[i].transfer_size = this->get_transfer_size(c);
-//   }
-// }
 
 OPTIMIZER_TEMPLATE
 Optimizer<OPTIMIZER_TEMPLATE_ARGS>::index_t* Optimizer<OPTIMIZER_TEMPLATE_ARGS>::FindPartitionParms() {
@@ -147,11 +101,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DeterminePartitionType() {
 
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_NonzeroBasedPartitioning(){
-
   cuda_stream_count = 1;
-  // size_t avail_buffer_size = this->_gpu_mem_size - (this->_get_data_size_core_tensor() + this->_get_data_size_factors());
-  // avail_nnz_count_per_task = avail_buffer_size / (this->_data->order * sizeof(index_t) + sizeof(value_t) + rank * sizeof(value_t));
-  // printf("\t- Max. available non-zero count per a device: %lu\n", avail_nnz_count_per_task);
 }
 
 OPTIMIZER_TEMPLATE
@@ -168,20 +118,8 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DimensionBasedPartitioning(){
     unsigned short partition_axis = this->_NextPartitionAxis();
     partition_dims[partition_axis]++;
     this->_RefreshBlockDims();
-    // this->estimate_component_costs();
   } while (!(GetAllDataSize() < gpu_stream_buffer_size && block_count >= total_cuda_stream_count));
 
-  // assert(avail_memory > 0);
-  // std::cout << "core tensor size\t"
-  //           << common::HumanReadable{(std::uintmax_t)this->_get_data_size_core_tensor()}
-  //           << std::endl;
-  // std::cout << "each sub factors size\t"
-  //           << common::HumanReadable{(std::uintmax_t)this->_get_data_size_sub_factors()}
-  //           << std::endl;
-  // std::cout << "avail_memory\t"
-  //           << common::HumanReadable{(std::uintmax_t)avail_memory}
-  //           << std::endl;
-  // avail_nnz_count_per_task = avail_memory / (order * sizeof(index_t) + (1 + this->rank) * sizeof(value_t));
 }
 
 OPTIMIZER_TEMPLATE
@@ -229,8 +167,6 @@ OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_tensor() {
   unsigned short order = this->_data->order;
   size_t ret_size = avg_nnz_count_per_block * (order * sizeof(index_t) + sizeof(value_t));
-  // std::cout << ">>> Sub-Tensor Size \t: " <<
-  // common::HumanReadable{(std::uintmax_t)ret_size} << std::endl;
 
   return ret_size;
 }
@@ -330,9 +266,6 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_RefreshBlockDims() {
     if (check_dim != partition_dims[axis]) {
       throw std::runtime_error(ERROR_LOG("[ERROR] Block dimension is larger than the tensor dimension."));
     }
-    // if (check_dim < partition_dims[axis]) {
-    //   partition_dims[axis] = check_dim;
-    // }
     block_count *= partition_dims[axis];
   }
 

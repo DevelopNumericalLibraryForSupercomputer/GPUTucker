@@ -58,11 +58,6 @@ int main(int argc, char* argv[]) {
     optimizer->ToString();
 
     tensor_t* tensor_blocks = new tensor_t(input_tensor);
-    PrintLine();
-    PrintLine();
-    tensor_blocks->ToString();
-    PrintLine();
-    PrintLine();
     tensor_manager->CreateTensorBlocks<optimizer_t>(&input_tensor, &tensor_blocks, optimizer);
     tensor_blocks->ToString();
 

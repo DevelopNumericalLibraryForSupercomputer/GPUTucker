@@ -23,12 +23,8 @@ class TensorManager {
 
 private:
   bool _ReadData(const char *buffer, const size_t buffer_length, tensor_t** tensor);
-  // void Count_nonzeros_per_block(std::vector<uint64_t> &global_histogram);
 
-//  public:
-//   tensor_t *data;
 };  // class TensorMANAGER
-
 }  // namespace gputucker
 }  // namespace supertensor
 #include "gputucker/tensor_manager.tpp"
