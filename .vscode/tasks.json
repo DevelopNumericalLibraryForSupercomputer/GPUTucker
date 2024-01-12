@@ -9,6 +9,7 @@
 				// "-g",
 				"${workspaceFolder}/*.cu",
 				"${workspaceFolder}/source/gputucker/*.cpp",
+				"${workspaceFolder}/source/common/*.cpp",
 				"-gencode=arch=compute_70,code=sm_70",
 				"-Xcompiler=-Wdeprecated-declarations",
 				"-Xcompiler=-Wno-write-strings",

@@ -50,7 +50,7 @@ namespace gputucker {
     std::vector<Task> *tasks; // number of gpus
     uint64_t task_count;      // >= block_count
     unsigned short gpu_count;
-    uint64_t nnz_count_per_task; // == ptimizer->avail_nnz_count_per_task??
+    uint64_t nnz_count_per_task; 
   };
   
 }

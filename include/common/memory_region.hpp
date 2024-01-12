@@ -112,8 +112,7 @@ namespace common
   MEMORY_REGION_TEMPLATE
   T *MemoryRegion<MEMORY_REGION_TEMPLATE_ARGS>::get_ptr(unsigned offset)
   {
-    if (is_null())
-    {
+    if (IsNull()) {
       return NULL;
     }
 

@@ -61,7 +61,6 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::MakeBlocks(uint64_t new_block_count,
                                     order, 
                                     block_dims, 
                                     histogram[block_id]);
-    std::cout<< "block_id: " << block_id <<"\t" << histogram[block_id] << std::endl;
     blocks[block_id]->AllocateData();
     if (histogram[block_id] == 0) {
       this->_empty_block_count++;

@@ -5,9 +5,9 @@
 
 #include <cuda_runtime_api.h>
 
-#include "common/cuda_helper.h"
-#include "common/human_readable.h"
-#include "common/size.h"
+#include "common/cuda_helper.hpp"
+#include "common/human_readable.hpp"
+#include "common/size.hpp"
 
 namespace common {
 namespace cuda {

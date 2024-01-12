@@ -5,7 +5,7 @@
 #include "gputucker/helper.hpp"
 #include "gputucker/cuda_agent.hpp"
 #include "common/cuda_helper.hpp"
-
+#include "common/memory_region.hpp"
 
 namespace supertensor {
 namespace gputucker {
@@ -27,8 +27,8 @@ bool CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::AllocateMaximumBuffer() {
   avail = common::cuda::get_available_device_memory();
 
   this->_base_mr = new memrgn_t(avail, 1);
-  size_t aligned_avail = this->_base_mr->get_size();
-  this->_base_mr->set_ptr(common::cuda::device_malloc(aligned_avail));
+  this->_allocated_size = this->_base_mr->get_size(); // aligned available memory
+  this->_base_mr->set_ptr(common::cuda::device_malloc(this->_allocated_size));
 
   return false;
 }
@@ -47,6 +47,83 @@ bool CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CreateCudaStream(unsigned int stream_co
     CUDA_API_CALL(cudaStreamCreateWithFlags(&this->_streams[i], cudaStreamNonBlocking));
   }
   return true;
+}
+
+CUDAAGENT_TEMPLATE
+void CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::SetDeviceBuffers(tensor_t* tensor, int rank, uint64_t max_nnz_count_in_block) {
+
+  int order = tensor->order;
+  index_t *block_dims = tensor->block_dims;
+  uint64_t core_size = std::pow(rank, order);
+
+  CUDA_API_CALL(cudaSetDevice(this->_device_id));
+  CreateCudaStream(this->_stream_count);
+
+  memrgn_t *tmp_base_mr = new memrgn_t();
+  tmp_base_mr->set_memory_region(this->_base_mr);
+  
+  // For addr. memory regions
+  dev_buf.X_idx_addr.Initialize(tmp_base_mr->get_shift_ptr(),
+                                  sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder,
+                                  this->_stream_count);
+  tmp_base_mr->shift_ptr(dev_buf.X_idx_addr.get_total_size());
+
+  dev_buf.core_idx_addr.Initialize(tmp_base_mr->get_shift_ptr(),
+                                  sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder,
+                                  1);
+  tmp_base_mr->shift_ptr(dev_buf.core_idx_addr.get_total_size());
+
+  dev_buf.factor_addr.Initialize(tmp_base_mr->get_shift_ptr(),
+                                sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder,
+                                this->_stream_count);
+  tmp_base_mr->shift_ptr(dev_buf.factor_addr.get_total_size());
+
+  // For X indices
+  for (int axis = 0; axis < order; ++axis) {
+    dev_buf.X_indices[axis].Initialize(tmp_base_mr->get_shift_ptr(),
+                                        sizeof(index_t) * max_nnz_count_in_block,
+                                        this->_stream_count);
+    tmp_base_mr->shift_ptr(dev_buf.X_indices[axis].get_total_size());
+  }
+
+  // For X values
+  dev_buf.X_values.Initialize(tmp_base_mr->get_shift_ptr(),
+                              sizeof(value_t) * max_nnz_count_in_block,
+                              this->_stream_count);
+  tmp_base_mr->shift_ptr(dev_buf.X_values.get_total_size());
+
+  // For core tensor
+  for (int axis = 0; axis < order; ++axis) {
+    dev_buf.core_indices[axis].Initialize(tmp_base_mr->get_shift_ptr(),
+                                          sizeof(index_t) * core_size,
+                                          1);
+    tmp_base_mr->shift_ptr(dev_buf.core_indices[axis].get_total_size());
+  }
+  // For core values
+  dev_buf.core_values.Initialize(tmp_base_mr->get_shift_ptr(),
+                                sizeof(value_t) * core_size,
+                                1);
+  tmp_base_mr->shift_ptr(dev_buf.core_values.get_total_size());
+
+  // For delta
+  dev_buf.delta.Initialize(tmp_base_mr->get_shift_ptr(),
+                          sizeof(value_t) * max_nnz_count_in_block * rank,
+                          this->_stream_count);
+
+  tmp_base_mr->shift_ptr(dev_buf.delta.get_total_size());
+
+  // For factore matrices
+  for (int axis = 0; axis < order; ++axis)
+  {
+    dev_buf.factors[axis].Initialize(tmp_base_mr->get_shift_ptr(),
+                                    sizeof(value_t) * block_dims[axis] * rank,
+                                    this->_stream_count);
+    tmp_base_mr->shift_ptr(dev_buf.factors[axis].get_total_size());
+  }
+
+  auto diff = ((char *)tmp_base_mr->get_shift_ptr() - (char *)this->_base_mr->get_ptr(0));
+  std::cout << "\t... Used size in GPU[" << this->_device_id << "]: " << common::HumanReadable{(std::uintmax_t)diff} << std::endl;
+
 }
 
 CUDAAGENT_TEMPLATE

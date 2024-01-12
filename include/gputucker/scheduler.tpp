@@ -25,7 +25,7 @@ namespace gputucker {
    if(optimizer->partition_type == gputucker::enums::PartitionTypes::kNonzeroPartition) {
       this->_NonzeroBasedPartitioning(tensor, optimizer);
     } else if(optimizer->partition_type == gputucker::enums::PartitionTypes::kDimensionPartition) {
-      this->_DimensionbasedPartitioning(tensor, optimizer);
+      this->_DimensionBasedPartitioning(tensor, optimizer);
     } else {
       printf("Invalid partition type\n");
       exit(1);
@@ -68,7 +68,7 @@ namespace gputucker {
       tasks[device_id].push_back(new_task);
 
       printf("In Device [%d]\t", device_id);
-      tasks[device_id][tasks[device_id].size() - 1].to_string();
+      tasks[device_id][tasks[device_id].size() - 1].ToString();
     }
   }
   
@@ -142,7 +142,7 @@ namespace gputucker {
         ++global_stream_offset;
       }
       // last nnz_cout
-      printf("last :: \t");
+      // printf("last :: \t");
       uint64_t last_nnz_count = tensor->blocks[block_id]->nnz_count - (t * nnz_count_per_stream);
       assert(last_nnz_count >= 0);
       assert(last_nnz_count <= nnz_count_per_stream);
@@ -155,15 +155,13 @@ namespace gputucker {
       stream_offset = global_stream_offset / this->gpu_count;
       assert(device_id < this->gpu_count);
 
-      std::cout << "device id: " << device_id;
-      std::cout << "\t stream offset: " << stream_offset;
+      // std::cout << "device id: " << device_id;
+      // std::cout << "\t stream offset: " << stream_offset;
 
       tasks[device_id].push_back(Task(block_id, last_nnz_count, t * nnz_count_per_stream, stream_offset));
-      tasks[device_id][0].to_string();
+      // tasks[device_id][0].ToString();
       ++this->task_count;
 
-      // printf("In Device [%d] - %d th stream\n", device_id, stream_offset);
-      // tasks[device_id][tasks[device_id].size() - 1].to_string();
       ++global_stream_offset;
     }
   }

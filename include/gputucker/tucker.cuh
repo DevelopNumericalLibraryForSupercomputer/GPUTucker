@@ -3,19 +3,38 @@
 
 #include <omp.h>
 
-#include "gputucker/constants.hpp"
 #include "common/cuda_helper.hpp"
+
+#include "gputucker/constants.hpp"
+#include "gputucker/update.cuh"
+#include "gputucker/reconstruction.cuh"
+#include "gputucker/cuda_agent.hpp"
+#include "gputucker/scheduler.hpp"
 
 namespace supertensor {
 namespace gputucker {
-template <typename OptimizerType, typename TensorType>
-void TuckerDecomposition(OptimizerType* optimizer, 
-                          TensorType* tensor, 
-                          int tucker_rank) {
+template <typename TensorType, typename OptimizerType, typename CudaAgentType, typename SchedulerType>
+void TuckerDecomposition(TensorType* tensor,
+                         OptimizerType* optimizer,
+                         CudaAgentType** cuda_agents,
+                         SchedulerType* scheduler) {
 
   using tensor_t = TensorType;
   using index_t = typename tensor_t::index_t;
   using value_t = typename tensor_t::value_t;
+  using block_t = typename tensor_t::block_t;
+  using optimizer_t = OptimizerType;
+  using cuda_agent_t = CudaAgent<tensor_t>;
+  using scheduler_t = Scheduler<tensor_t, optimizer_t>;
+
+
+  unsigned short order = tensor->order;
+  index_t *dims = tensor->dims;
+  index_t *block_dims = tensor->block_dims;
+  index_t *partition_dims = tensor->partition_dims;
+
+  int rank = optimizer->rank;
+  int device_count = optimizer->gpu_count;
 
   MYPRINT("... Ready to fill in the factor matrices and the core tensor\n");
   value_t **factor_matrices[gputucker::constants::kMaxOrder];
@@ -46,7 +65,6 @@ void TuckerDecomposition(OptimizerType* optimizer,
     }
   }
 
-
    // Core tensor
   printf("\t... Make the core tensor\n");
   tensor_t *core_tensor = new tensor_t(order);
@@ -61,7 +79,8 @@ void TuckerDecomposition(OptimizerType* optimizer,
 
   core_tensor->set_dims(core_dims);
   core_tensor->set_nnz_count(core_nnz_count);
-  core_tensor->make_blocks(core_part_dims, &core_nnz_count);
+  core_tensor->MakeBlocks(1, &core_nnz_count);
+
 
   block_t *curr_block = core_tensor->blocks[0];
 
@@ -104,6 +123,14 @@ void TuckerDecomposition(OptimizerType* optimizer,
     C[part] = gputucker::allocate<matrix_t>(max_block_dim * rank);
   }
 
+  
+  for (unsigned dev_id = 0; dev_id < device_count; ++dev_id)
+  {
+    // TODO Stream count;}
+    cuda_agents[dev_id]->set_stream_count(optimizer->cuda_stream_count);
+  }
+
+
   int iter = 0;
   double p_fit = -1;
   double fit = -1;
@@ -111,8 +138,25 @@ void TuckerDecomposition(OptimizerType* optimizer,
   double avg_time = omp_get_wtime();
 
   while (1) {
-    // 1) update factor matrices
-    // 2) reconstruction
+    double itertime = omp_get_wtime(), steptime;
+    steptime = itertime;
+    gputucker::UpdateFactorMatrices<tensor_t, matrix_t, value_t, cuda_agent_t, scheduler_t>(tensor, core_tensor, factor_matrices, delta, B, C, rank, device_count, cuda_agents, scheduler);
+    printf("Factor Time : %lf\n", omp_get_wtime() - steptime);
+
+    steptime = omp_get_wtime();
+    gputucker::Reconstruction<tensor_t, value_t, value_t, cuda_agent_t, scheduler_t>(tensor, core_tensor, factor_matrices, &fit, error_T, rank, device_count, cuda_agents, scheduler);
+    printf("Recon Time : %lf\n\n", omp_get_wtime() - steptime);
+    steptime = omp_get_wtime();
+
+    ++iter;
+
+    std::cout << "iter " << iter << "\t Fit: " << fit << std::endl;
+    printf("iter%d :      Fit : %lf\tElapsed Time : %lf\n\n", iter, fit, omp_get_wtime() - itertime);
+    if (iter >= gputucker::constants::kMaxIteration || (p_fit != -1 && gputucker::abs<double>(p_fit - fit) <= gputucker::constants::kLambda)) {
+      break;
+    }
+    p_fit = fit;
+
   }
 
   MYPRINT("DONE\n");

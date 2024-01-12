@@ -42,6 +42,7 @@ class Tensor {
   /* Getter */
   index_t get_max_partition_dim() { return this->_max_partition_dim; }
   index_t get_max_block_dim() { return this->_max_block_dim;}
+  index_t get_max_nnz_count_in_block() { return this->_max_nnz_count_in_block; }
 
   private:
     void _BlockIDtoBlockCoord(uint64_t block_id, index_t *coord);

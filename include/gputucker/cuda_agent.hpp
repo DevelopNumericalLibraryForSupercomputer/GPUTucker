@@ -49,12 +49,22 @@ namespace gputucker {
 
     bool AllocateMaximumBuffer();
     bool CreateCudaStream(unsigned int stream_count);
+    void SetDeviceBuffers(tensor_t* tensor, int rank, uint64_t max_nnz_count_in_block);
     void ToString();
 
     int get_device_id() const { return this->_device_id; }
     cudaStream_t *get_cuda_streams() { return this->_streams; }
     cudaDeviceProp *get_device_properties() { return &this ->_device_properties; }
     memrgn_t *get_base_memory_region() { return this->_base_mr; }
+    int get_stream_count() const { return this->_stream_count; }
+    int get_device_count() const { return this->_device_count; }
+    size_t get_allocated_size() const { return this->_allocated_size; }
+
+    void set_stream_count(unsigned int stream_count) { this->_stream_count = stream_count; }
+
+
+  public:
+    DeviceBuffer dev_buf;
 
   private:
     int _device_id;
@@ -62,6 +72,8 @@ namespace gputucker {
     cudaStream_t *_streams;
     cudaDeviceProp _device_properties;
     memrgn_t *_base_mr;
+    int _device_count;
+    size_t _allocated_size;
 
   }; // class CudaAgent
 

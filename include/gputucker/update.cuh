@@ -9,27 +9,25 @@
 
 #include "gputucker/helper.hpp"
 #include "gputucker/constants.hpp"
-
+#include "gputucker/delta.cuh"
 
 namespace supertensor {
 namespace gputucker {
 
-   template <typename ContextType, typename TensorType, typename MatrixType, typename DeltaType>
-  void computing_BC(ContextType *context,
-                    TensorType *tensor,
-                    DeltaType **delta,
-                    MatrixType **B,
-                    MatrixType **C,
-                    int curr_factor_id) {
+template <typename TensorType, typename MatrixType, typename DeltaType>
+void ComputingBC( TensorType *tensor,
+                  DeltaType **delta,
+                  MatrixType **B,
+                  MatrixType **C,
+                  int curr_factor_id,
+                  int rank) {
+
     using tensor_t = TensorType;
     using block_t = typename tensor_t::block_t;
     using index_t = typename tensor_t::index_t;
     using value_t = typename tensor_t::value_t;
 
-    const int rank = context->rank;
-
     const uint64_t block_count = tensor->block_count;
-    const uint64_t max_nnz_count_in_block = tensor->max_nnz_count_in_block;
 
     index_t *block_dims = tensor->block_dims;
     index_t *part_dims = tensor->partition_dims;
@@ -47,18 +45,20 @@ namespace gputucker {
           for (l = 0; l < rank; ++l) {
             B[part_id][pos_B] = 0.0f;
             if (k == l) {
-              B[part_id][pos_B] = gtucker::constants::kLambda;
+              B[part_id][pos_B] = gputucker::constants::kLambda;
             }
             ++pos_B;
           }
           C[part_id][pos_C] = 0.0f;
           ++pos_C;
-      }
-    } // !omp parallel
+        }
+      } // !omp parallel
+    }   // !part_dims
 
     index_t ii, jj;
     uint64_t kk;
     for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
+      std::cout << "block [" << block_id << "] is being processed" << std::endl;
       block_t *curr_block = tensor->blocks[block_id];
       index_t *curr_block_coord = curr_block->get_block_coord();
       index_t part_id = curr_block_coord[curr_factor_id];
@@ -88,44 +88,48 @@ namespace gputucker {
     }
   }
 
-  template <typename ContextType, typename TensorType, typename MatrixType, typename ValueType>
-  void update_factor_matrices(ContextType *context,
-                              TensorType *tensor,
+  template <typename TensorType, typename MatrixType, typename ValueType, typename CudaAgentType, typename SchedulerType>
+  void UpdateFactorMatrices(TensorType *tensor,
                               TensorType *core_tensor,
                               ValueType ***factor_matrices,
                               ValueType **delta,
                               MatrixType **B,
-                              MatrixType **C)
-  {
+                              MatrixType **C,
+                              int rank,
+                              int device_count,
+                              CudaAgentType** cuda_agents,
+                              SchedulerType* scheduler) {
     using tensor_t = TensorType;
     using block_t = typename tensor_t::block_t;
     using index_t = typename tensor_t::index_t;
     using value_t = typename tensor_t::value_t;
     using matrix_t = Eigen::MatrixXd;
 
-    const int rank = context->rank;
-
     int order = tensor->order;
 
     index_t *block_dims = tensor->block_dims;
     index_t *part_dims = tensor->partition_dims;
 
-    context->set_device_buffers(tensor);
-    for (int curr_factor_id = 0; curr_factor_id < order; ++curr_factor_id)
+
+    for (unsigned dev_id = 0; dev_id < device_count; ++dev_id)
     {
+      cuda_agents[dev_id]->SetDeviceBuffers(tensor, rank, scheduler->nnz_count_per_task);
+    }
+
+    for (int curr_factor_id = 0; curr_factor_id < order; ++curr_factor_id) {
       MYPRINT("[ Update factor matrix %d ]\n", curr_factor_id);
 
       double delta_time = omp_get_wtime();
-#pragma omp parallel num_threads(context->device_count)
+#pragma omp parallel num_threads(device_count)
       {
         int device_id = omp_get_thread_num();
-        computing_delta(context, tensor, core_tensor, factor_matrices, delta, curr_factor_id, device_id);
+        ComputingDelta(tensor, core_tensor, factor_matrices, delta, curr_factor_id, rank, cuda_agents[device_id], scheduler, device_id);
         CUDA_API_CALL(cudaDeviceSynchronize());
       }
       printf("\t- Elapsed time for Computing Delta: %lf\n", omp_get_wtime() - delta_time);
 
       double bc_time = omp_get_wtime();
-      computing_BC(context, tensor, delta, B, C, curr_factor_id);
+      ComputingBC(tensor, delta, B, C, curr_factor_id, rank);
       
       printf("\t- Elapsed time for Computing B and C: %lf\n", omp_get_wtime() - bc_time);
 
@@ -133,8 +137,7 @@ namespace gputucker {
       index_t row_count = block_dims[curr_factor_id];
       index_t col_count = rank;
 
-      for (uint64_t part_id = 0; part_id < part_dims[curr_factor_id]; ++part_id)
-      {
+      for (uint64_t part_id = 0; part_id < part_dims[curr_factor_id]; ++part_id) {
 #pragma omp parallel for schedule(static)
         for (index_t row = 0; row < row_count; ++row)
         {
@@ -142,10 +145,8 @@ namespace gputucker {
           uint64_t pos_B = row * col_count * col_count;
           uint64_t pos_C = row * col_count;
           matrix_t BB(col_count, col_count);
-          for (index_t k = 0; k < col_count; ++k)
-          {
-            for (index_t l = 0; l < col_count; ++l)
-            {
+          for (index_t k = 0; k < col_count; ++k) {
+            for (index_t l = 0; l < col_count; ++l) {
               BB(k, l) = B[part_id][pos_B + k * col_count + l];
             }
           }
@@ -153,11 +154,9 @@ namespace gputucker {
           matrix_t B_inv = BB.inverse();
 
           index_t offset = row * col_count;
-          for (index_t k = 0; k < col_count; ++k)
-          {
+          for (index_t k = 0; k < col_count; ++k) {
             value_t res = 0;
-            for (index_t l = 0; l < col_count; ++l)
-            {
+            for (index_t l = 0; l < col_count; ++l) {
               res += C[part_id][pos_C + l] * B_inv(l, k);
             }
             factor_matrices[curr_factor_id][part_id][offset + k] = res;
@@ -173,7 +172,7 @@ namespace gputucker {
     } // ! curr_factor
   }
   
-}
-}
-}
+} // ! namespace gputucker
+} // ! namespace supertensor
+
 #endif /* UPDATE_CUH_ */
