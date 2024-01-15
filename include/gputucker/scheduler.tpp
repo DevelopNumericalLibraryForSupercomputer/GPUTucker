@@ -138,11 +138,8 @@ namespace gputucker {
         ++this->task_count;
 
         printf("[%d] block in Device [%d] - %d th stream\n", block_id, device_id, stream_offset);
-        // tasks[device_id][tasks[device_id].size() - 1].to_string();
         ++global_stream_offset;
       }
-      // last nnz_cout
-      // printf("last :: \t");
       uint64_t last_nnz_count = tensor->blocks[block_id]->nnz_count - (t * nnz_count_per_stream);
       assert(last_nnz_count >= 0);
       assert(last_nnz_count <= nnz_count_per_stream);
@@ -155,11 +152,7 @@ namespace gputucker {
       stream_offset = global_stream_offset / this->gpu_count;
       assert(device_id < this->gpu_count);
 
-      // std::cout << "device id: " << device_id;
-      // std::cout << "\t stream offset: " << stream_offset;
-
       tasks[device_id].push_back(Task(block_id, last_nnz_count, t * nnz_count_per_stream, stream_offset));
-      // tasks[device_id][0].ToString();
       ++this->task_count;
 
       ++global_stream_offset;

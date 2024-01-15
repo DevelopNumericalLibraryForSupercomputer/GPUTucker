@@ -126,7 +126,6 @@ void TuckerDecomposition(TensorType* tensor,
   
   for (unsigned dev_id = 0; dev_id < device_count; ++dev_id)
   {
-    // TODO Stream count;}
     cuda_agents[dev_id]->set_stream_count(optimizer->cuda_stream_count);
   }
 
@@ -160,8 +159,6 @@ void TuckerDecomposition(TensorType* tensor,
   }
 
   MYPRINT("DONE\n");
-
-
 
 }
 

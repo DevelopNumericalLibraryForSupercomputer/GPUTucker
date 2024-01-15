@@ -251,9 +251,6 @@ void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tens
     }
   }
 
-  // for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
-  //   std::cout << "Block " << block_id << " has " << global_nnz_histogram[block_id] << " nonzeros" << std::endl;
-  // }
   assert(check_nnz_count == nnz_count);
   (*dest)->set_partition_dims(partition_dims);
   (*dest)->MakeBlocks(block_count, global_nnz_histogram.data());

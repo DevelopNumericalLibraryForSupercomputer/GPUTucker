@@ -207,14 +207,6 @@ namespace gputucker {
     uint64_t max_nnz_count_in_block = tensor->get_max_nnz_count_in_block();
     index_t *block_dims = tensor->block_dims;
 
-
-    // value_t **error_T = static_cast<value_t **>(common::cuda::pinned_malloc(sizeof(value_t *) * block_count));
-    // for (uint64_t block_id = 0; block_id < block_count; ++block_id)
-    // {
-    //   block_t *curr_block = tensor->blocks[block_id];
-    //   error_T[block_id] = static_cast<value_t *>(common::cuda::pinned_malloc(sizeof(value_t) * curr_block->nnz_count));
-    // }
-
     for (unsigned dev_id = 0; dev_id < device_count; ++dev_id)
     {
       cuda_agents[dev_id]->SetDeviceBuffers(tensor, rank, scheduler->nnz_count_per_task);
@@ -235,7 +227,6 @@ namespace gputucker {
       block_t *curr_block = tensor->blocks[block_id];
 #pragma omp prallel for schedule(static) reduction(+ : Error)
       for (uint64_t nnz = 0; nnz < curr_block->nnz_count; ++nnz) {
-        //			printf("Error[%lu][%lu]=%1.3f\n", block_id, nnz, error_T[block_id][nnz]);
         value_t err_tmp = curr_block->values[nnz] - error_T[block_id][nnz];
         Error += err_tmp * err_tmp;
       }

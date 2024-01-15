@@ -51,7 +51,6 @@ int main(int argc, char* argv[]) {
     cuda_agent_t** cuda_agents = allocate<cuda_agent_t *>(options->get_gpu_count());
     for (unsigned dev_id = 0; dev_id < options->get_gpu_count(); ++dev_id)
     {
-      // TODO Stream count;}
       cuda_agents[dev_id] = new cuda_agent_t(dev_id);
       cuda_agents[dev_id]->AllocateMaximumBuffer();
     }
