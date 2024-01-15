@@ -30,7 +30,6 @@ class Block {
   bool IsEmpty(){ return this->nnz_count == 0; }
   bool IsAllocated(){ return this->_is_allocated; }
   void AllocateData();
-  // void SetupData(uint64_t new_nnz_count);
   void InsertNonzero(uint64_t pos, index_t *new_coord, value_t new_value);
   void AssignIndicesToEachMode();
   void ToString();

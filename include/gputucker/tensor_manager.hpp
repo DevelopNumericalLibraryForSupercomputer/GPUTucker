@@ -23,8 +23,8 @@ class TensorManager {
 
 private:
   bool _ReadData(const char *buffer, const size_t buffer_length, tensor_t** tensor);
-
 };  // class TensorMANAGER
+
 }  // namespace gputucker
 }  // namespace supertensor
 #include "gputucker/tensor_manager.tpp"

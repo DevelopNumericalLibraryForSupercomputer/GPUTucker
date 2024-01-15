@@ -5,7 +5,7 @@ namespace supertensor {
 namespace gputucker {
 namespace constants {
 constexpr int kMaxOrder{8};
-constexpr int kMaxIteration{1};
+constexpr int kMaxIteration{3};
 constexpr double kLambda{0.0001f};
 }  // namespace constants
 

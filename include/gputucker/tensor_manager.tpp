@@ -142,7 +142,8 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
           local_max_dims[thread_id][axis] = std::max<index_t>(local_max_dims[thread_id][axis], idx);
           local_dim_offset[thread_id][axis] = std::min<index_t>(local_dim_offset[thread_id][axis], idx);
 
-          // Store the current index in the global indices array, with 1-indexing (subtract 1 from idx)
+          // Store the current index in the global indices array, 
+          // with 1-indexing (subtract 1 from idx)
           indices[axis][offset + nnz - 1] = idx - 1;  // 1-Indexing
           ++axis;
         }  // !while
@@ -250,9 +251,6 @@ void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tens
     }
   }
 
-  for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
-    std::cout << "Block " << block_id << " has " << global_nnz_histogram[block_id] << " nonzeros" << std::endl;
-  }
   assert(check_nnz_count == nnz_count);
   (*dest)->set_partition_dims(partition_dims);
   (*dest)->MakeBlocks(block_count, global_nnz_histogram.data());

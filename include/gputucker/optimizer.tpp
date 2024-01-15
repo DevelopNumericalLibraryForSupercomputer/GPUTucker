@@ -30,10 +30,6 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllDataSize() {
   ret_size += this->_get_data_size_sub_factors();
   ret_size += this->_get_data_size_sub_delta();
 
-  // for (int i = 0; i < static_cast<int>(Component::ComponentCount); ++i) {
-  //   Component c = static_cast<Component>(i);
-  //   ret_size += this->component_cost[i].data_size;
-  // }
   return ret_size;
 }
 
@@ -79,7 +75,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DeterminePartitionType() {
   size_t required_size = 0;
   required_size += this->_get_data_size_input_tensor();
   required_size += gpu_count * this->_get_data_size_core_tensor();
-  required_size += gpu_count * this->_get_data_size_sub_factors();
+  required_size += gpu_count * this->_get_data_size_all_factors();
   required_size += this->_get_data_size_delta();
 
   printf("Required Size / Total %d GPUs Mem size\t: ", gpu_count);
@@ -101,6 +97,7 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DeterminePartitionType() {
 
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_NonzeroBasedPartitioning(){
+
   cuda_stream_count = 1;
 }
 

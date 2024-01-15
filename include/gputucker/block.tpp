@@ -56,6 +56,7 @@ Block<BLOCK_TEMPLATE_ARGS>::~Block() {
   nnz_count = 0;
 }
 
+
 BLOCK_TEMPLATE
 void Block<BLOCK_TEMPLATE_ARGS>::InsertNonzero(uint64_t pos,
                                                 index_t *new_coord,
