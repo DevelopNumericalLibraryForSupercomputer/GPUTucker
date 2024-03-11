@@ -1,12 +1,20 @@
 # GPUTucker (GPU-based Tucker Decomposition)
 
+## Overview
+### GPUTucker: Large-Scale GPU-Based Tucker Decomposition Using Tensor Partitioning (ESWA 2024)
+Jihye Lee, Donghyoung Han, Oh-Kyoung Kwon, Kang-Wook Chon, and Min-Soo Kim
+
+[[Paper]](https://www.sciencedirect.com/science/article/pii/S0957417423019474)
+
+
+
+## Usage
+GPUTucker requires OpenMP and CUDA libraries.
+
 For each application, the folders are:
 - **include**: All project header files. All third-party header files that do not exist under /usr/local/include are also placed here.
 - **lib**: Any libs that get compiled by the project, third-party or any needed in development.
 - **source**: The application's source files.
-
-## Usage
-GPUTucker requires OpenMP and CUDA libraries.
 
 **Input tensor must follow tab- or space-separated format and base-1 indexing.**
 
