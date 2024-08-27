@@ -1,5 +1,3 @@
-#include <cuda_runtime_api.h>
-
 #include <iostream>
 
 #include "gputucker/cmdline_opts.hpp"
@@ -12,6 +10,10 @@ int main(int argc, char *argv[]) {
   using namespace supertensor::gputucker;
 
   // Parse command line options
+  // Parse command line options
+  // The program begins by parsing command-line options, 
+  // such as the input tensor file, tensor order, Tucker rank, and the number of GPUs to use.
+  // These options are critical for configuring the GPUTucker algorithm.
   CommandLineOptions *options = new CommandLineOptions;
   CommandLineOptions::ReturnStatus ret = options->Parse(argc, argv);
 
