@@ -76,7 +76,7 @@
   // "C_Cpp.errorSquiggles": "Disabled",
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
-  "editor.formatOnSave":false,
+  "editor.formatOnSave":true,
   "editor.fontFamily": "D2Coding, Menlo, Monaco, 'Courier New', monospace",
   "editor.formatOnPaste": false,
   "editor.formatOnType": false,

@@ -1,29 +1,44 @@
-#include <iostream>
 #include <cassert>
 #include <cuda_runtime_api.h>
+#include <iostream>
 
-#include "gputucker/helper.hpp"
-#include "gputucker/cuda_agent.hpp"
 #include "common/cuda_helper.hpp"
 #include "common/memory_region.hpp"
+#include "gputucker/cuda_agent.hpp"
+#include "gputucker/helper.hpp"
 
 namespace supertensor {
 namespace gputucker {
 
+/**
+ * @brief Default constructor
+ * @details Construct a new CudaAgent object
+ * @param id Device ID
+ *
+ */
 CUDAAGENT_TEMPLATE
-CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CudaAgent(unsigned id) : _device_id(id){
-  CUDA_API_CALL(cudaSetDevice(this->_device_id));
-  CUDA_API_CALL(cudaGetDeviceProperties(&this->_device_properties, this->_device_id));
+CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CudaAgent(unsigned id) : _device_id(id) {
+  common::cuda::_CUDA_API_CALL(cudaSetDevice(this->_device_id));
+  common::cuda::_CUDA_API_CALL(cudaGetDeviceProperties(&this->_device_properties, this->_device_id));
 }
 
+/**
+ * @brief Destructor
+ * @details Destroy the CudaAgent object
+ *
+ */
 CUDAAGENT_TEMPLATE
-CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CudaAgent() : CudaAgent(0){
-}
+CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CudaAgent() : CudaAgent(0) {}
 
+/**
+ * @brief Destructor
+ * @details Destroy the CudaAgent object
+ *
+ */
 CUDAAGENT_TEMPLATE
 bool CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::AllocateMaximumBuffer() {
   size_t avail, total, used;
-  CUDA_API_CALL(cudaSetDevice(this->_device_id));
+  common::cuda::_CUDA_API_CALL(cudaSetDevice(this->_device_id));
   avail = common::cuda::get_available_device_memory();
 
   this->_base_mr = new memrgn_t(avail, 1);
@@ -32,7 +47,12 @@ bool CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::AllocateMaximumBuffer() {
 
   return false;
 }
-
+/**
+ * @brief Create CUDA streams
+ * @details Create CUDA streams for the device
+ * @param stream_count Number of streams
+ * @return true if the CUDA streams are created successfully, false otherwise
+ */
 CUDAAGENT_TEMPLATE
 bool CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CreateCudaStream(unsigned int stream_count) {
   assert(stream_count > 0);
@@ -44,88 +64,80 @@ bool CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::CreateCudaStream(unsigned int stream_co
   }
 
   for (size_t i = 0; i < this->_stream_count; ++i) {
-    CUDA_API_CALL(cudaStreamCreateWithFlags(&this->_streams[i], cudaStreamNonBlocking));
+   common::cuda::_CUDA_API_CALL(cudaStreamCreateWithFlags(&this->_streams[i], cudaStreamNonBlocking));
   }
   return true;
 }
 
+/**
+ * @brief Set device buffers
+ * @details Set device buffers for the tensor data
+ * @param tensor Tensor data
+ * @param rank Tucker rank
+ * @param max_nnz_count_in_block Maximum number of non-zero elements in a block
+ *
+ */
 CUDAAGENT_TEMPLATE
-void CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::SetDeviceBuffers(tensor_t* tensor, int rank, uint64_t max_nnz_count_in_block) {
+void CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::SetDeviceBuffers(tensor_t *tensor, int rank, uint64_t max_nnz_count_in_block) {
 
   int order = tensor->order;
   index_t *block_dims = tensor->block_dims;
   uint64_t core_size = std::pow(rank, order);
 
-  CUDA_API_CALL(cudaSetDevice(this->_device_id));
+  common::cuda::_CUDA_API_CALL(cudaSetDevice(this->_device_id));
   CreateCudaStream(this->_stream_count);
 
   memrgn_t *tmp_base_mr = new memrgn_t();
   tmp_base_mr->set_memory_region(this->_base_mr);
-  
+
   // For addr. memory regions
-  dev_buf.X_idx_addr.Initialize(tmp_base_mr->get_shift_ptr(),
-                                  sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder,
-                                  this->_stream_count);
+  dev_buf.X_idx_addr.Initialize(tmp_base_mr->get_shift_ptr(), sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder, this->_stream_count);
   tmp_base_mr->shift_ptr(dev_buf.X_idx_addr.get_total_size());
 
-  dev_buf.core_idx_addr.Initialize(tmp_base_mr->get_shift_ptr(),
-                                  sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder,
-                                  1);
+  dev_buf.core_idx_addr.Initialize(tmp_base_mr->get_shift_ptr(), sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder, 1);
   tmp_base_mr->shift_ptr(dev_buf.core_idx_addr.get_total_size());
 
-  dev_buf.factor_addr.Initialize(tmp_base_mr->get_shift_ptr(),
-                                sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder,
-                                this->_stream_count);
+  dev_buf.factor_addr.Initialize(tmp_base_mr->get_shift_ptr(), sizeof(std::uintptr_t *) * gputucker::constants::kMaxOrder, this->_stream_count);
   tmp_base_mr->shift_ptr(dev_buf.factor_addr.get_total_size());
 
   // For X indices
   for (int axis = 0; axis < order; ++axis) {
-    dev_buf.X_indices[axis].Initialize(tmp_base_mr->get_shift_ptr(),
-                                        sizeof(index_t) * max_nnz_count_in_block,
-                                        this->_stream_count);
+    dev_buf.X_indices[axis].Initialize(tmp_base_mr->get_shift_ptr(), sizeof(index_t) * max_nnz_count_in_block, this->_stream_count);
     tmp_base_mr->shift_ptr(dev_buf.X_indices[axis].get_total_size());
   }
 
   // For X values
-  dev_buf.X_values.Initialize(tmp_base_mr->get_shift_ptr(),
-                              sizeof(value_t) * max_nnz_count_in_block,
-                              this->_stream_count);
+  dev_buf.X_values.Initialize(tmp_base_mr->get_shift_ptr(), sizeof(value_t) * max_nnz_count_in_block, this->_stream_count);
   tmp_base_mr->shift_ptr(dev_buf.X_values.get_total_size());
 
   // For core tensor
   for (int axis = 0; axis < order; ++axis) {
-    dev_buf.core_indices[axis].Initialize(tmp_base_mr->get_shift_ptr(),
-                                          sizeof(index_t) * core_size,
-                                          1);
+    dev_buf.core_indices[axis].Initialize(tmp_base_mr->get_shift_ptr(), sizeof(index_t) * core_size, 1);
     tmp_base_mr->shift_ptr(dev_buf.core_indices[axis].get_total_size());
   }
   // For core values
-  dev_buf.core_values.Initialize(tmp_base_mr->get_shift_ptr(),
-                                sizeof(value_t) * core_size,
-                                1);
+  dev_buf.core_values.Initialize(tmp_base_mr->get_shift_ptr(), sizeof(value_t) * core_size, 1);
   tmp_base_mr->shift_ptr(dev_buf.core_values.get_total_size());
 
   // For delta
-  dev_buf.delta.Initialize(tmp_base_mr->get_shift_ptr(),
-                          sizeof(value_t) * max_nnz_count_in_block * rank,
-                          this->_stream_count);
+  dev_buf.delta.Initialize(tmp_base_mr->get_shift_ptr(), sizeof(value_t) * max_nnz_count_in_block * rank, this->_stream_count);
 
   tmp_base_mr->shift_ptr(dev_buf.delta.get_total_size());
 
   // For factore matrices
-  for (int axis = 0; axis < order; ++axis)
-  {
-    dev_buf.factors[axis].Initialize(tmp_base_mr->get_shift_ptr(),
-                                    sizeof(value_t) * block_dims[axis] * rank,
-                                    this->_stream_count);
+  for (int axis = 0; axis < order; ++axis) {
+    dev_buf.factors[axis].Initialize(tmp_base_mr->get_shift_ptr(), sizeof(value_t) * block_dims[axis] * rank, this->_stream_count);
     tmp_base_mr->shift_ptr(dev_buf.factors[axis].get_total_size());
   }
 
   auto diff = ((char *)tmp_base_mr->get_shift_ptr() - (char *)this->_base_mr->get_ptr(0));
   std::cout << "\t... Used size in GPU[" << this->_device_id << "]: " << common::HumanReadable{(std::uintmax_t)diff} << std::endl;
-
 }
-
+/**
+ * @brief Print the device information
+ * @details Print the device information
+ *
+ */
 CUDAAGENT_TEMPLATE
 void CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::ToString() {
   auto prop = this->_device_properties;
@@ -136,15 +148,13 @@ void CudaAgent<CUDAAGENT_TEMPLATE_ARGS>::ToString() {
   printf("Device copy overlap:  ");
   if (prop.deviceOverlap) {
     printf("Enabled\n");
-  }
-  else {
+  } else {
     printf("Disabled\n");
   }
   printf("Kernel execution timeout :  ");
   if (prop.kernelExecTimeoutEnabled) {
     printf("Enabled\n");
-  }
-  else {
+  } else {
     printf("Disabled\n");
   }
   printf("\n");

@@ -11,16 +11,12 @@
 namespace supertensor {
 namespace gputucker {
 
-TENSOR_MANAGER_TEMPLATE
-TensorManager<TENSOR_MANAGER_ARGS>::TensorManager(){}
-
 /*
-* @brief Parse the input tensor from a file
-* @param file_name The name of the file containing the tensor
-* @return True if the tensor is parsed successfully, false otherwise
-*/
-TENSOR_MANAGER_TEMPLATE
-bool TensorManager<TENSOR_MANAGER_ARGS>::ParseFromFile(const std::string &file_name, tensor_t** tensor) {
+ * @brief Parse the input tensor from a file
+ * @param file_name The name of the file containing the tensor
+ * @return True if the tensor is parsed successfully, false otherwise
+ */
+template <typename TensorType> bool ParseFromFile(const std::string &file_name, TensorType **tensor) {
   std::ifstream file(file_name);
   if (!file.is_open()) {
     std::string err_msg = "[ERROR] Canot open file \"" + file_name + "\" for reading...";
@@ -31,27 +27,27 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::ParseFromFile(const std::string &file_n
 
   size_t file_size = static_cast<size_t>(file.tellg());
   assert(file_size > 0);
-  std::cout << "Input Tensor Size (COO) \t: "
-            << common::HumanReadable{(std::uintmax_t)file_size} << std::endl;
+  std::cout << "Input Tensor Size (COO) \t: " << common::HumanReadable{(std::uintmax_t)file_size} << std::endl;
 
   file.seekg(0, file.beg);
   std::string buffer(file_size, '\0');
   file.read(&buffer[0], file_size);
   file.close();
 
-  return this->_ReadData(buffer.c_str(), file_size, tensor);
+  return _ReadData<TensorType>(buffer.c_str(), file_size, tensor);
 }
 
 /*
-* @brief Parse the input tensor from a string
-* @param buffer The string containing the tensor
-* @param buffer_length The length of the string
-* @return True if the tensor is parsed successfully, false otherwise
-*/
-TENSOR_MANAGER_TEMPLATE
-bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
-                                                  const size_t buffer_length,
-                                                  tensor_t** tensor) {
+ * @brief Parse the input tensor from a string
+ * @param buffer The string containing the tensor
+ * @param buffer_length The length of the string
+ * @return True if the tensor is parsed successfully, false otherwise
+ */
+template <typename TensorType> bool _ReadData(const char *buffer, const size_t buffer_length, TensorType **tensor) {
+  using tensor_t = TensorType;
+  using index_t = typename tensor_t::index_t;
+  using value_t = typename tensor_t::value_t;
+
   int thread_id = 0;
   int thread_count = 0;
   int order = (*tensor)->order;
@@ -66,7 +62,7 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
 
   value_t *values;
   index_t *indices[order];
-  
+
 #pragma omp parallel private(thread_id)
   {
     thread_id = omp_get_thread_num();
@@ -142,11 +138,11 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
           local_max_dims[thread_id][axis] = std::max<index_t>(local_max_dims[thread_id][axis], idx);
           local_dim_offset[thread_id][axis] = std::min<index_t>(local_dim_offset[thread_id][axis], idx);
 
-          // Store the current index in the global indices array, 
+          // Store the current index in the global indices array,
           // with 1-indexing (subtract 1 from idx)
-          indices[axis][offset + nnz - 1] = idx - 1;  // 1-Indexing
+          indices[axis][offset + nnz - 1] = idx - 1; // 1-Indexing
           ++axis;
-        }  // !while
+        } // !while
 
         /* Value */
         // Parse the value of the current slice
@@ -159,7 +155,7 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
         }
         values[offset + nnz - 1] = val;
       }
-    }  // !for
+    } // !for
 
 // 2. extract metadata for the tensor (dims, offsets, and #nnzs)
 #pragma omp critical
@@ -173,7 +169,7 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
         }
       }
     } // !omp critical
-  }  //! omp
+  } //! omp
 
   uint64_t block_id = 0;
 
@@ -194,10 +190,19 @@ bool TensorManager<TENSOR_MANAGER_ARGS>::_ReadData(const char *buffer,
   return true;
 }
 
+/**
+ * @brief Create tensor blocks
+ * @details Create tensor blocks for the Tucker decomposition
+ * @param src The source tensor
+ * @param dest The destination tensor
+ * @param optimizer The optimizer
+ *
+ */
+template <typename TensorType, typename OptimizerType> void CreateTensorBlocks(TensorType **src, TensorType **dest, OptimizerType *optimizer) {
 
-TENSOR_MANAGER_TEMPLATE
-template<typename OptimizerType>
-void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tensor_t** dest, OptimizerType* optimizer) {
+  using tensor_t = TensorType;
+  using index_t = typename tensor_t::index_t;
+  using value_t = typename tensor_t::value_t;
 
   printf("... 1) Creating tensor blocks\n");
   const unsigned short order = (*src)->order;
@@ -211,25 +216,24 @@ void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tens
   index_t **indices = (*src)->blocks[0]->indices;
   value_t *values = (*src)->blocks[0]->values;
 
-  
   // 1. Count nonzeros per block
   std::vector<std::vector<uint64_t>> local_nnz_histograms(omp_get_max_threads(), std::vector<uint64_t>(block_count, 0));
   std::vector<std::vector<index_t>> local_nnz_coords(omp_get_max_threads(), std::vector<index_t>(order, 0));
 
   printf("... 2) Counting nonzeros per block\n");
-  #pragma omp parallel
+#pragma omp parallel
   {
     const int thread_id = omp_get_thread_num();
     const int thread_count = omp_get_num_threads();
 
-    #pragma omp for
+#pragma omp for
     for (uint64_t nnz = 0; nnz < nnz_count; ++nnz) {
       // Convert coordinates of nonzero into block id
       uint64_t block_id = 0;
       uint64_t mult = 1;
       for (unsigned short iter = 0; iter < order; ++iter) {
         unsigned short axis = order - iter - 1;
-        
+
         assert(indices[axis][nnz] < dims[axis] && "Coordinate is out of bounds");
         index_t block_idx = indices[axis][nnz] / block_dims[axis];
         assert(block_idx < partition_dims[axis] && "Block coordinate is out of bounds");
@@ -271,7 +275,7 @@ void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tens
       assert(indices[axis][nnz] < dims[axis] && "Coordinate is out of bounds");
       local_tensor_coord[axis] = indices[axis][nnz];
       index_t block_idx = indices[axis][nnz] / block_dims[axis];
-  
+
       assert(block_idx < partition_dims[axis] && "Block coordinate is out of bounds");
       block_id += block_idx * mult;
       mult *= partition_dims[axis];
@@ -295,8 +299,7 @@ void TensorManager<TENSOR_MANAGER_ARGS>::CreateTensorBlocks(tensor_t** src, tens
   global_nnz_histogram.clear();
   std::vector<uint64_t>().swap(global_nnz_histogram);
   printf("... 5) Done\n");
-
 }
 
-}  // namespace gputucker
-}  // namespace supertensor
+} // namespace gputucker
+} // namespace supertensor

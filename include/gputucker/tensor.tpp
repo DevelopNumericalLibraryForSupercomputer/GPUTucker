@@ -4,6 +4,13 @@
 #include "gputucker/tensor.hpp"
 namespace supertensor {
 namespace gputucker {
+  /**
+   * @brief Constructor
+   * @details Construct a new Tensor object
+   * @param new_order Tensor order
+   * @throws std::runtime_error if the tensor order is less than 1
+   * @return A new Tensor object
+   */
 TENSOR_TEMPLATE
 Tensor<TENSOR_TEMPLATE_ARGS>::Tensor(unsigned short new_order)
     : order(new_order) {
@@ -32,19 +39,50 @@ Tensor<TENSOR_TEMPLATE_ARGS>::Tensor(unsigned short new_order)
     partition_dims[axis] = 1; // Default partition dimension is 1
   }
 }
-
+/**
+ * @brief Constructor
+ * @details Construct a new Tensor object
+ * @param other Another Tensor object
+ * @return A new Tensor object
+ * 
+ */
 TENSOR_TEMPLATE
 Tensor<TENSOR_TEMPLATE_ARGS>::Tensor(this_t* other) : Tensor(other->order){
   set_dims(other->dims);
   nnz_count = other->nnz_count;
 }
-
+/**
+ * @brief Constructor
+ * @details Construct a new Tensor object
+ * @return A new Tensor object
+ */
 TENSOR_TEMPLATE
 Tensor<TENSOR_TEMPLATE_ARGS>::Tensor() : Tensor(0) {}
 
+/**
+ * @brief Destructor
+ * @details Destroy the Tensor object
+ * 
+ */
 TENSOR_TEMPLATE
-Tensor<TENSOR_TEMPLATE_ARGS>::~Tensor() {}
-
+Tensor<TENSOR_TEMPLATE_ARGS>::~Tensor() {
+  gputucker::deallocate<index_t>(dims);
+  gputucker::deallocate<index_t>(partition_dims);
+  gputucker::deallocate<index_t>(block_dims);
+  if (blocks != NULL) {
+    for (uint64_t block_id = 0; block_id < block_count; ++block_id) {
+      delete blocks[block_id];
+    }
+    gputucker::deallocate<block_t *>(blocks);
+  }
+}
+/**
+ * @brief Make blocks
+ * @details Make blocks for the tensor
+ * @param new_block_count New block count
+ * @param histogram Histogram of non-zero elements
+ * 
+ */
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::MakeBlocks(uint64_t new_block_count, 
                                               uint64_t *histogram) {
@@ -71,7 +109,14 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::MakeBlocks(uint64_t new_block_count,
 }
 
 
-
+/**
+ * @brief Insert block data
+ * @details Insert block data into the tensor
+ * @param block_id Block ID
+ * @param new_indices New indices
+ * @param new_values New values
+ * 
+ */
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::InsertData(uint64_t block_id,
                                               index_t *new_indices[],
@@ -85,7 +130,11 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::InsertData(uint64_t block_id,
     blocks[block_id]->set_is_allocated(true);
   // }
 }
-
+/**
+ * @brief Assign indices to each block
+ * @details Assign indices to each block in the tensor
+ * 
+ */
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::AssignIndicesOfEachBlock() {
   printf("Assign indices in blocks\n");
@@ -97,6 +146,13 @@ void Tensor<TENSOR_TEMPLATE_ARGS>::AssignIndicesOfEachBlock() {
   }
 }
 
+/**
+ * @brief Convert block id to block coordinate
+ * @details Convert block id to block coordinate
+ * @param block_id Block ID
+ * @param coord Coordinate
+ * 
+ */
 TENSOR_TEMPLATE
 void Tensor<TENSOR_TEMPLATE_ARGS>::_BlockIDtoBlockCoord(uint64_t block_id,
                                                         index_t *coord) {

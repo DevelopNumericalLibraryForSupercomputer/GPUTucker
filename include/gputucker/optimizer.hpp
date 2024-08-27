@@ -11,79 +11,217 @@ namespace gputucker {
 #define OPTIMIZER_TEMPLATE template <typename TensorType>
 #define OPTIMIZER_TEMPLATE_ARGS TensorType
 
+/**
+ * @brief Optimizer class for Tucker decomposition.
+ *
+ * This class defines the optimizer for the Tucker decomposition program. The optimizer
+ * is responsible for determining the partition type for the input tensor, partitioning
+ * the tensor based on non-zero elements or dimensions, and calculating the number of
+ * non-zero elements per task. It also computes the data size for each CUDA execution
+ * sequence, ensuring efficient resource utilization.
+ *
+ * @tparam TensorType The type of tensor used in the decomposition.
+ *
+ * @details The optimizer plays a crucial role in dividing the tensor into manageable
+ * blocks for parallel processing on GPUs, based on either dimension-based or
+ * non-zero-based partitioning strategies.
+ *
+ * @version 1.0.0
+ * @date 2021-08-10
+ *
+ */
 OPTIMIZER_TEMPLATE
 class Optimizer {
-  using tensor_t = TensorType;
-  using index_t = typename tensor_t::index_t;
-  using value_t = typename tensor_t::value_t;
+  using tensor_t = TensorType;                ///< Type alias for the tensor type.
+  using index_t = typename tensor_t::index_t; ///< Type alias for the index type.
+  using value_t = typename tensor_t::value_t; ///< Type alias for the value type.
 
- public:
-
- public:
+public:
+  /**
+   * @brief Default constructor for the Optimizer.
+   */
   Optimizer() {}
-  ~Optimizer() {}
-  void Initialize( unsigned short new_gpu_count,
-                  unsigned int new_rank, 
-                  uint64_t new_gpu_mem_size,
-                  tensor_t* new_data);
 
+  /**
+   * @brief Destructor for the Optimizer.
+   */
+  ~Optimizer() {}
+
+  /**
+   * @brief Initializes the optimizer with the necessary parameters.
+   *
+   * @param new_gpu_count The number of GPUs available for computation.
+   * @param new_rank The Tucker rank.
+   * @param new_gpu_mem_size The memory size available on each GPU.
+   * @param new_data Pointer to the tensor data to be optimized.
+   */
+  void Initialize(unsigned short new_gpu_count, unsigned int new_rank, uint64_t new_gpu_mem_size, tensor_t *new_data);
+
+  /**
+   * @brief Calculates the total size of the tensor data.
+   *
+   * @return The total data size in bytes.
+   */
   size_t GetAllDataSize();
+
+  /**
+   * @brief Calculates the total size of data to be transferred between memory and GPUs.
+   *
+   * @return The total transfer size in bytes.
+   */
   size_t GetAllTransferSize();
-  index_t* FindPartitionParms();
+
+  /**
+   * @brief Determines the optimal partition parameters.
+   *
+   * @return A pointer to the partition dimensions.
+   */
+  index_t *FindPartitionParms();
+
+  /**
+   * @brief Converts the optimizer's state to a string representation.
+   *
+   * This function is useful for debugging or logging the state of the optimizer.
+   */
   void ToString();
 
- private:
-  void _DeterminePartitionType();  // which is the partition type for the input tensor?
-  /* Partitioning methods */
+private:
+  /**
+   * @brief Determines the partition type for the input tensor.
+   *
+   * This method selects whether to use dimension-based or non-zero-based partitioning
+   * based on the characteristics of the input tensor.
+   */
+  void _DeterminePartitionType();
+
+  /**
+   * @brief Partitions the tensor based on the number of non-zero elements.
+   */
   void _NonzeroBasedPartitioning();
+
+  /**
+   * @brief Partitions the tensor based on its dimensions.
+   */
   void _DimensionBasedPartitioning();
 
-   /* determining the next axis or dimension along which the data will be partitioned. */
+  /**
+   * @brief Determines the next axis or dimension for partitioning.
+   *
+   * @return The index of the next axis to be partitioned.
+   */
   unsigned short _NextPartitionAxis();
-  /* Adjusting block dimensions using partition dimensions */
+
+  /**
+   * @brief Adjusts the block dimensions using partition dimensions.
+   */
   void _RefreshBlockDims();
+
+  /**
+   * @brief Calculates the available number of non-zero elements per task.
+   */
   void _AvailableNonzeroCountPerTask();
 
-  /* Get data size for a CUDA execution sequence*/
+  /* Methods to get data sizes for various CUDA execution sequences */
+
+  /**
+   * @brief Gets the data size for the input tensor.
+   *
+   * @return The data size in bytes.
+   */
   size_t _get_data_size_input_tensor();
+
+  /**
+   * @brief Gets the data size for the core tensor.
+   *
+   * @return The data size in bytes.
+   */
   size_t _get_data_size_core_tensor();
+
+  /**
+   * @brief Gets the data size for all factor matrices.
+   *
+   * @return The data size in bytes.
+   */
   size_t _get_data_size_all_factors();
+
+  /**
+   * @brief Gets the data size for the delta values.
+   *
+   * @return The data size in bytes.
+   */
   size_t _get_data_size_delta();
 
-  /* sub */
+  /* Methods to get data sizes for sub-tensors and intermediate results */
+
+  /**
+   * @brief Gets the data size for a sub-tensor.
+   *
+   * @return The data size in bytes.
+   */
   size_t _get_data_size_sub_tensor();
+
+  /**
+   * @brief Gets the data size for sub-factor matrices.
+   *
+   * @return The data size in bytes.
+   */
   size_t _get_data_size_sub_factors();
-  size_t _get_data_size_sub_delta();  // intermediate data size using available nnz count;
 
+  /**
+   * @brief Gets the data size for sub-delta values.
+   *
+   * @return The data size in bytes.
+   */
+  size_t _get_data_size_sub_delta();
+
+  /**
+   * @brief Gets the data transfer size for a sub-tensor.
+   *
+   * @return The transfer size in bytes.
+   */
   size_t _get_transfer_size_sub_tensor();
+
+  /**
+   * @brief Gets the data transfer size for the core tensor.
+   *
+   * @return The transfer size in bytes.
+   */
   size_t _get_transfer_size_core_tensor();
+
+  /**
+   * @brief Gets the data transfer size for sub-factor matrices.
+   *
+   * @return The transfer size in bytes.
+   */
   size_t _get_transfer_size_sub_factors();
-  size_t _get_transfer_size_delta();  // intermediate data size
 
+  /**
+   * @brief Gets the data transfer size for delta values.
+   *
+   * @return The transfer size in bytes.
+   */
+  size_t _get_transfer_size_delta();
 
- public:
-  int cuda_stream_count;
-  unsigned int rank;
-  unsigned short gpu_count;
+public:
+  int cuda_stream_count;    ///< The number of CUDA streams.
+  unsigned int rank;        ///< The Tucker rank.
+  unsigned short gpu_count; ///< The number of GPUs available.
 
-  index_t *block_dims;
-  index_t *partition_dims;
-  uint64_t block_count;
+  index_t *block_dims;     ///< The dimensions of each block in the tensor.
+  index_t *partition_dims; ///< The dimensions used for partitioning the tensor.
+  uint64_t block_count;    ///< The total number of blocks in the tensor.
 
-  uint64_t avg_nnz_count_per_block;  // (estimated) nonzeros per a task
-  uint64_t avail_nnz_count_per_task;
+  uint64_t avg_nnz_count_per_block;  ///< The estimated number of non-zero elements per task.
+  uint64_t avail_nnz_count_per_task; ///< The available number of non-zero elements per task.
 
-  // CostMetric *component_cost;
-  gputucker::enums::PartitionTypes partition_type;
-  size_t gpu_mem_size;
+  gputucker::enums::PartitionTypes partition_type; ///< The type of partitioning used.
+  size_t gpu_mem_size;                             ///< The size of GPU memory available.
 
- private:
-  tensor_t* _data;
-
-
+private:
+  tensor_t *_data; ///< Pointer to the tensor data.
 };
-}  // namespace gputucker
-}  // namespace supertensor
+} // namespace gputucker
+} // namespace supertensor
 
 #include "gputucker/optimizer.tpp"
 #endif /* OPTIMIZER_HPP_ */

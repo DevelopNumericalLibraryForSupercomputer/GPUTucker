@@ -6,7 +6,15 @@
 
 namespace supertensor {
 namespace gputucker {
-
+/**
+ * @brief Initialize the optimizer
+ * @details Initialize the optimizer with the given parameters
+ * @param new_gpu_count Number of GPUs
+ * @param new_rank Tucker rank
+ * @param new_gpu_mem_size GPU memory size
+ * @param new_data Tensor data
+ * 
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::Initialize(unsigned short new_gpu_count, 
                                                     unsigned int new_rank,
@@ -20,7 +28,11 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::Initialize(unsigned short new_gpu_count
   partition_type = gputucker::enums::PartitionTypes::kDimensionPartition;
   this->_data = new_data;
 }
-
+/**
+ * @brief Get all data size
+ * @details Get all data size for a CUDA execution sequence
+ * @return Sum of all data sizes
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllDataSize() {
   size_t ret_size = 0;
@@ -32,7 +44,12 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllDataSize() {
 
   return ret_size;
 }
-
+/**
+ * @brief Get all transfer size
+ * @details Get all amount of transfer data size for a CUDA execution sequence
+ * @return Sum of all transfer data sizes
+ * 
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllTransferSize() {
   size_t ret_size = 0;
@@ -44,7 +61,12 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::GetAllTransferSize() {
   return ret_size;
 }
 
-
+/**
+ * @brief Find optimal partition parameters
+ * @details Find optimal partition parameters for the input tensor
+ * @return Partition parameters
+ * 
+ */
 OPTIMIZER_TEMPLATE
 Optimizer<OPTIMIZER_TEMPLATE_ARGS>::index_t* Optimizer<OPTIMIZER_TEMPLATE_ARGS>::FindPartitionParms() {
   MYPRINT("Find partition find_partition_parms\n");
@@ -65,7 +87,10 @@ Optimizer<OPTIMIZER_TEMPLATE_ARGS>::index_t* Optimizer<OPTIMIZER_TEMPLATE_ARGS>:
 
   return partition_dims;
 }
-
+/**
+ * @brief Determine partition type
+ * @details Determine partition type (Nonzero-based Partitioning OR Dimension-based Partitioning)
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DeterminePartitionType() {
   MYPRINT("Determine partition type (Nonzero-based Partitioning OR Dimension-based Partitioning)\n");
@@ -94,13 +119,21 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DeterminePartitionType() {
   }
   this->_AvailableNonzeroCountPerTask();
 }
-
+/**
+ * @brief Next partition axis
+ * @details Determine the next axis or dimension along which the data will be partitioned
+ * 
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_NonzeroBasedPartitioning(){
 
   cuda_stream_count = 1;
 }
-
+/**
+ * @brief Next partition axis
+ * @details Determine the next axis or dimension along which the data will be partitioned
+ * 
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DimensionBasedPartitioning(){
 
@@ -118,7 +151,11 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_DimensionBasedPartitioning(){
   } while (!(GetAllDataSize() < gpu_stream_buffer_size && block_count >= total_cuda_stream_count));
 
 }
-
+/**
+ * @brief Calculate available nonzeros per task
+ * @details Calculate the maximum number of non-zero elements per task
+ * 
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_AvailableNonzeroCountPerTask() {
   size_t gpu_stream_buffer_size = gpu_mem_size / cuda_stream_count;
@@ -126,6 +163,11 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_AvailableNonzeroCountPerTask() {
   avail_nnz_count_per_task = avail_buffer_size / (this->_data->order * sizeof(index_t) + sizeof(value_t) + rank * sizeof(value_t));
 }
 
+/**
+ * @brief Print the optimizer information
+ * @details Print the optimizer information, including the partition type, partition dimensions, block count, and the number of non-zero elements per task
+ * 
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::ToString() {
   PrintLine();
@@ -152,14 +194,23 @@ void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::ToString() {
   printf("The number of CUDA Streams in a GPU: %d\n", cuda_stream_count);
   printf("The number of GPUs: %d\n", gpu_count);
 }
-
+/**
+ * @brief Get data size for the input tensor
+ * @details Get data size for the input tensor for a CUDA execution sequence
+ * @return Data size for the input tensor
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_input_tensor() {
   size_t ret_size = this->_data->nnz_count * (this->_data->order * sizeof(index_t) + sizeof(value_t));
   return ret_size;
 }
 
-// Calculates and returns the size of a sub-tensor
+/**
+ * @brief Get data size for a sub-tensor
+ * @details Get data size for a sub-tensor for a CUDA execution sequence
+ * @return Data size for a sub-tensor
+ * 
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_tensor() {
   unsigned short order = this->_data->order;
@@ -168,7 +219,11 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_tensor() {
   return ret_size;
 }
 
-// Calculates and returns the size of a core tensor
+/**
+ * @brief Calculate the size of a core tensor
+ * @details Calculate the size of a core tensor for a CUDA execution sequence
+ * @return Size of a core tensor
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_core_tensor() {
   unsigned int order = this->_data->order;
@@ -176,7 +231,12 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_core_tensor() {
   size_t ret_size = core_nnz_count * (order * sizeof(index_t) + sizeof(value_t));
   return ret_size;
 }
-
+/**
+ * @brief Calculate the size of all factor matrices
+ * @details Calculate the size of all factor matrices for a CUDA execution sequence
+ * @return Size of all factor matrices
+ * 
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_all_factors() {
   size_t ret_size = 0;
@@ -186,7 +246,11 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_all_factors() {
   return ret_size * sizeof(value_t);
 }
 
-// Calculates and returns the size of sub-factor matrices
+/**
+ * @brief Calculate the size of sub-factor matrices
+ * @details Calculate the size of sub-factor matrices for a CUDA execution sequence
+ * @return Size of sub-factor matrices
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_factors() {
   // sum of each sub-factor for the factor
@@ -196,28 +260,57 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_factors() {
   }
   return ret_size * sizeof(value_t);
 }
-
+/**
+ * @brief Calculate the size of delta
+ * @details Calculate the size of delta for a CUDA execution sequence
+ * @return Size of delta
+ * 
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_delta() {
   size_t ret_size = this->_data->nnz_count * rank * sizeof(value_t);
   return ret_size;
 }
+
+/**
+ * @brief Calculate the size of sub-delta
+ * @details Calculate the size of sub-delta for a CUDA execution sequence
+ * @return Size of sub-delta
+ * 
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_data_size_sub_delta() {
   unsigned short order = this->_data->order;
   size_t ret_size = this->avg_nnz_count_per_block * this->rank * sizeof(value_t);
   return ret_size;
 }
-
+/**
+ * @brief Calculate the size of transfer data for a sub-tensor
+ * @details Calculate the size of transfer data for a sub-tensor for a CUDA execution sequence
+ * @return Size of transfer data for a sub-tensor
+ * 
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_sub_tensor() {
   size_t ret_size = this->_data->nnz_count * (this->_data->order * sizeof(index_t) + sizeof(value_t));
   return ret_size;
 }
+
+/**
+ * @brief Calculate the size of transfer data for a core tensor
+ * @details Calculate the size of transfer data for a core tensor for a CUDA execution sequence
+ * @return Size of transfer data for a core tensor
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_core_tensor() {
   return this->_get_data_size_core_tensor();
 }
+
+/**
+ * @brief Calculate the size of transfer data for sub-factor matrices
+ * @details Calculate the size of transfer data for sub-factor matrices for a CUDA execution sequence
+ * @return Size of transfer data for sub-factor matrices
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_sub_factors() {
   unsigned short order = this->_data->order;
@@ -229,14 +322,23 @@ size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_sub_factors() {
   ret_size *= sizeof(value_t);
   return ret_size;
 }
+
+/**
+ * @brief Calculate the size of transfer data for delta
+ * @details Calculate the size of transfer data for delta for a CUDA execution sequence
+ * @return Size of transfer data for delta
+ */
 OPTIMIZER_TEMPLATE
 size_t Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_get_transfer_size_delta() {
   size_t ret_size = this->_data->nnz_count * this->rank * sizeof(value_t);
   return ret_size;
 }
 
-/* determining the next axis or dimension along which the data will be
- * partitioned. */
+/**
+ * @brief Next partition axis
+ * @details Determine the next axis or dimension along which the data will be partitioned
+ * @return Next partition axis
+ */
 OPTIMIZER_TEMPLATE
 unsigned short Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_NextPartitionAxis() {
   unsigned short max_axis = 0;
@@ -249,7 +351,11 @@ unsigned short Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_NextPartitionAxis() {
   return max_axis;
 }
 
-/* Adjusting block dimensions using partition dimensions */
+/**
+ * @brief Adjust block dimensions
+ * @details Adjust block dimensions using partition dimensions
+ * 
+ */
 OPTIMIZER_TEMPLATE
 void Optimizer<OPTIMIZER_TEMPLATE_ARGS>::_RefreshBlockDims() {
   // Initialize block dimensions
