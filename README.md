@@ -4,7 +4,7 @@
 Tucker decomposition is used extensively for modeling multi-dimensional data represented as tensors. Owing to the increasing magnitude of nonzero values in real-world tensors, a growing demand has emerged for expeditious and scalable Tucker decomposition techniques. Several graphics processing unit (GPU)-accelerated techniques have been proposed for Tucker decomposition to decrease the decomposition speed. However, these approaches often encounter difficulties in handling extensive tensors owing to their huge memory demands, which exceed the available capacity of GPU memory. This study presents an expandable GPU-based technique for Tucker decomposition called GPUTucker. The proposed method meticulously partitions sizable tensors into smaller sub-tensors, which are referred to as tensor blocks, and effectively implements the GPU-based data pipeline by handling these tensor blocks asynchronously. Extensive experiments demonstrate that GPUTucker outperforms state-of-the-art Tucker decomposition methods in terms of the decomposition speed and scalability.
 
 
-GPUTucker algorithm for updating a factor matrix consists of the following steps
+GPUTucker algorithm for updating a factor matrix consists of the following steps.
 
 1. **Initialize values**: GPUTucker initializes all values in the core tensor and all factor matrices with random values between 0 and 1.
 
@@ -24,7 +24,7 @@ GPUTucker algorithm for updating a factor matrix consists of the following steps
 
 Steps 1 through 3 involve setting up the core tensor and factor matrices. Steps 4 and 5 are iterative, with GPUTucker repeating these steps for each tensor block to ensure efficient updates using GPU acceleration. This approach leverages GPU power for faster computation and optimizes memory transfer between the CPU and GPU to minimize overhead.
 
-<img src="./features/fig_overview_GPUTucker.png" width="500" height="300"/>
+<img src="./features/fig_overview_GPUTucker.png" width="600" height="400"/>
 
 
 
@@ -32,13 +32,13 @@ Steps 1 through 3 involve setting up the core tensor and factor matrices. Steps 
 ### Features
 #### Dimension partitioning
 
-Efficient partitioning is crucial for optimizing performance in high-dimensional tensor computations. Given an \( N \)-order tensor \( \mathcal{X} \in \mathbb{R}^{I_1 \times I_2 \times \cdots \times I_N} \), GPUTucker implements a robust dimension partitioning strategy. This technique partitions \( \mathcal{X} \) into non-overlapping sub-tensors using a set of \( N \) parameters \( \{P_n \mid 1 \le n \le N\} \).
+Efficient partitioning is crucial for optimizing performance in high-dimensional tensor computations. Given an $N$-order tensor $\mathcal{X} \in \mathbb{R}^{I_1 \times I_2 \times \cdots \times I_N}$, GPUTucker implements a robust dimension partitioning strategy. This technique partitions $\mathcal{X}$ into non-overlapping sub-tensors using a set of $N$ parameters $\{P_n \mid 1 \le n \le N\}$.
 
-Each parameter \( P_n \) controls the number of partitions along the \( I_n \)-axis of the input tensor, ensuring optimal division across its dimensions. These partition parameters must adhere to the condition \( 1 \le P_n \le I_n \), which guarantees that each axis is partitioned within its bounds, preventing over-segmentation or under-utilization of computational resources.
+Each parameter $P_n$ controls the number of partitions along the $I_n$-axis of the input tensor, ensuring optimal division across its dimensions. These partition parameters must adhere to the condition $1 \le P_n \le I_n$, which guarantees that each axis is partitioned within its bounds, preventing over-segmentation or under-utilization of computational resources.
 
 This partitioning approach enhances the parallel processing capabilities of GPUTucker, enabling efficient handling of large-scale tensor operations across multiple computing cores or GPU threads. Users can expect significant improvements in both memory management and computational speed when working with high-dimensional tensors.
 
-<img src="./features/fig_dimension_partitioning.png" width="500" height="200"/>
+<img src="./features/fig_dimension_partitioning.png" width="500" height="180"/>
 
 
 #### Efficient GPU Utilization in GPUTucker
@@ -80,9 +80,9 @@ For each application, the folder structure is as follows:
 ``````
 # Example Tensor
 # The tensor is represented as a list of non-zero elements.
-# Each row corresponds to an element in the tensor, with the first columns representing the indices and the last column representing the value.
+# Each row corresponds to an element in the tensor, with the first column representing the indices and the last column representing the value.
 
-# Format: (index1, index2, ..., indexN) value
+# Format: (index 1, index 2, ..., index N) value
 
 1    1    1    4.0
 1    2    1    5.5
@@ -139,7 +139,7 @@ $ ./GPUTucker -i [input_path] -o [order] -r [tucker_rank] -g [num_gpus]
 <img src="./features/fig_result_gpus.png" width="600" height="400"/>
 
 * GPUTucker demonstrated a near-linear reduction in runtime as the number of GPUs increased across all datasets.
-* This improvement was particularly noticeable with large factor matrices (i.e., \( J_n = 30 \)), which significantly increased the computational workload.
+* This improvement was particularly noticeable with large factor matrices (i.e., $J_n = 30$), which significantly increased the computational workload.
 
 
 ## Example code
